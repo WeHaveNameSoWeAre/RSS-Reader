@@ -13,12 +13,8 @@ import java.net.URL;
  */
 public class App {
     public static void main(String[] args) throws IOException, FeedException {
-        URL feedUrl = new URL("http://www.tabnak.ir/fa/rss/allnews");
-
-        SyndFeedInput input = new SyndFeedInput();
-        SyndFeed feed = input.build(new XmlReader(feedUrl));
-
-        System.out.println(feed);
+        SiteUpdater siteUpdater = new SiteUpdater(new URL("http://www.tabnak.ir/fa/rss/allnews"));
+        siteUpdater.update();
 
     }
 }

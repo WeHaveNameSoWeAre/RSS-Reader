@@ -1,8 +1,7 @@
 package in.nimbo;
 
-import java.util.ArrayList;
-
-public interface Config {
+public interface SiteConfig {
     String getBodyPattern();
+
     String[] getAdPatterns();
 }

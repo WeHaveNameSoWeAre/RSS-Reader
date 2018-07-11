@@ -1,7 +1,7 @@
 package in.nimbo;
 
-import in.nimbo.Model.Channel;
-import in.nimbo.Model.Item;
+import in.nimbo.model.Channel;
+import in.nimbo.model.Item;
 
 public class DatabaseHandler {
     private static DatabaseHandler instance = null;
@@ -18,7 +18,7 @@ public class DatabaseHandler {
         return instance;
     }
 
-    public int insertChannel(Channel channel){
+    public int insertChannelAndReturnId(Channel channel){
         // TODO: 7/11/18
         return 0;
     }
@@ -26,6 +26,10 @@ public class DatabaseHandler {
     public boolean checkItemExists(Item item){
         // TODO: 7/11/18
         return false;
+    }
+    
+    public void insertItem(Item item){
+        // TODO: 7/11/18
     }
 
 }
