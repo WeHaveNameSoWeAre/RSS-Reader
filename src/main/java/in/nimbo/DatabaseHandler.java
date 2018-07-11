@@ -54,14 +54,14 @@ public class DatabaseHandler {
         logger.debug("database port: {}", DBport);
         logger.debug("database DBName: {}", DBname);
 
-        String driverString = String.format("jdbc:mysql://%s:$d/%s",
+        String driverString = String.format("jdbc:mysql://%s:%s/%s",
                 DBhostname,
                 DBport,
                 DBname
         );
 
-        Class.forName("org.mysql.jdbc.Driver");
-        
+        Class.forName("com.mysql.jdbc.Driver");
+
         connection = DriverManager.getConnection(
                 driverString,
                 (String) DBusername,
