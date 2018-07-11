@@ -24,7 +24,7 @@ public class AppTest
         Properties p = new Properties();
         p.put("bodyPattern", "test");
         p.put("adPatterns", "testPattern;teste");
-        Path path = Paths.get("./tabnak.ir.properties");
+        Path path = Paths.get("./www.tabnak.ir.properties");
         p.store(new FileOutputStream(path.toFile()), "Comments");
 
     }
