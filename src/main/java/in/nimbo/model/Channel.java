@@ -1,4 +1,4 @@
-package in.nimbo.Model;
+package in.nimbo.model;
 
 import java.util.Date;
 
