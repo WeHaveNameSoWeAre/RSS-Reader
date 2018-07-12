@@ -28,6 +28,7 @@ public class DatabaseHandler {
                 instance.init();
             } catch (Exception e) {
                 logger.error("database Connection Failed!!", e);
+                instance = null;
                 throw new RuntimeException("database Connection Failed!!", e);
             }
         }
