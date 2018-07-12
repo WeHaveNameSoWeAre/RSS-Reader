@@ -6,25 +6,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Properties;
 
 public class DatabaseHandler {
     final static Logger logger = LoggerFactory.getLogger(DatabaseHandler.class);
     private static DatabaseHandler instance = null;
+    PreparedStatement insertChannelStatement;
     private Properties properties = new Properties();
     private Connection connection;
 
-    private DatabaseHandler() {
+    private DatabaseHandler() throws SQLException {
 
+        insertChannelStatement = connection.prepareStatement(
+                "INSERT INTO channels (name) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
     }
 
     public static DatabaseHandler getInstance() {
         if (instance == null) {
-            instance = new DatabaseHandler();
             try {
+                instance = new DatabaseHandler();
                 instance.init();
             } catch (Exception e) {
                 logger.error("database Connection Failed!!", e);
@@ -74,9 +75,9 @@ public class DatabaseHandler {
 
     }
 
-    public int insertChannelAndReturnId(Channel channel) {
-        // TODO: 7/11/18
-        return 0;
+    public int insertChannelAndReturnId(Channel channel) throws SQLException {
+        insertChannelStatement.setString(1, channel.getTitle());
+        return insertChannelStatement.executeUpdate();
     }
 
     public boolean checkItemExists(Item item) {
