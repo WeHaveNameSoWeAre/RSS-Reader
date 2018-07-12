@@ -34,14 +34,14 @@ public class SiteUpdater {
 
             Channel channel = new Channel(feed.getTitle(), feed.getDescription(), feed.getLink(), feed.getPublishedDate());
             SiteConfig siteConfig = new FileSiteConfig(urlAddress.getHost());
-            int channelId = db.insertChannelAndReturnId(channel);
+            db.insertChannel(channel);
+            int channelId = db.getChannelId(channel);
 
             for (SyndEntry entry : feed.getEntries()) {
                 String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
                 Item item = new Item(entry.getTitle(), new URL(entry.getLink()), description, entry.getPublishedDate(), channelId);
 
                 logger.info("Checking item {}", item.getTitle());
-
                 if (db.checkItemExists(item)) continue;
 
                 try {
