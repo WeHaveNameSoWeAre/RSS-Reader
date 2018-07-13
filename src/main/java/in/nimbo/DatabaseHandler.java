@@ -54,7 +54,7 @@ public class DatabaseHandler {
         logger.debug("database port: {}", DBport);
         logger.debug("database DBName: {}", DBname);
 
-        String driverString = String.format("jdbc:mysql://%s:%s/%s??useUnicode=true&amp;characterEncoding=utf8",
+        String driverString = String.format("jdbc:mysql://%s:%s/%s?useUnicode=true&characterEncoding=utf8",
                 DBhostname,
                 DBport,
                 DBname
