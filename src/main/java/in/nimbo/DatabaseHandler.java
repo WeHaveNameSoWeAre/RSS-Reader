@@ -6,11 +6,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Properties;
 
 public class DatabaseHandler {
-    final static Logger logger = LoggerFactory.getLogger(DatabaseHandler.class);
+    private final static Logger logger = LoggerFactory.getLogger(DatabaseHandler.class);
     private static DatabaseHandler instance = null;
     private PreparedStatement insertItemStatement, getItemIdStatement, getChannelIdStatement, insertChannelStatement;
     private Properties properties = new Properties();
@@ -79,8 +82,8 @@ public class DatabaseHandler {
 
     private void initPreparedStatements() throws SQLException {
         insertChannelStatement = connection.prepareStatement(
-                "INSERT INTO `channels` (name,link,linkHash) VALUES (?,?,SHA1(?))");
-        getChannelIdStatement = connection.prepareStatement("SELECT id FROM channels WHERE linkHash = SHA1(?)");
+                "INSERT INTO `channels` (name, rssLink, rssLinkHash, link) VALUES (?,?,SHA1(?),?)");
+        getChannelIdStatement = connection.prepareStatement("SELECT id FROM channels WHERE rssLinkHash = SHA1(?)");
         getItemIdStatement = connection.prepareStatement("SELECT id FROM items WHERE linkHash = SHA1(?)");
         insertItemStatement = connection.prepareStatement(
                 "INSERT INTO items(title, link, `desc`, text, date, channelId, linkHash)" +
@@ -92,8 +95,9 @@ public class DatabaseHandler {
         try {
 
             insertChannelStatement.setString(1, channel.getTitle());
-            insertChannelStatement.setString(2, channel.getLink());
-            insertChannelStatement.setString(3, channel.getLink());
+            insertChannelStatement.setString(2, channel.getLink().toExternalForm());
+            insertChannelStatement.setString(3, channel.getLink().toExternalForm());
+            insertChannelStatement.setString(4, (channel.getLink()).getHost());
             insertChannelStatement.executeUpdate();
 
         } catch (SQLIntegrityConstraintViolationException e) {
@@ -123,7 +127,7 @@ public class DatabaseHandler {
         insertItemStatement.setString(2, item.getLink().toExternalForm());
         insertItemStatement.setString(3, item.getDescription());
         insertItemStatement.setString(4, item.getFullText());
-        insertItemStatement.setDate(5, new java.sql.Date(item.getPubDate().getTime()));
+        insertItemStatement.setTimestamp(5, new java.sql.Timestamp(item.getPubDate().getTime()));
         insertItemStatement.setInt(6, item.getChannelId());
         insertItemStatement.setString(7, item.getLink().toExternalForm());
 
@@ -131,11 +135,48 @@ public class DatabaseHandler {
     }
 
     public int getChannelId(Channel channel) throws SQLException {
-        getChannelIdStatement.setString(1, channel.getLink());
+        getChannelIdStatement.setString(1, channel.getLink().toExternalForm());
         ResultSet resultSet = getChannelIdStatement.executeQuery();
         if (resultSet.next())
             return resultSet.getInt("id");
         else
             throw new SQLException("Channel doesn't Exist!");
+    }
+
+    public int getChannelId(String channelLink) throws SQLException {
+        PreparedStatement query = connection.prepareStatement("SELECT id FROM channels WHERE link = ?");
+        query.setString(1, channelLink.trim());
+        ResultSet resultSet = query.executeQuery();
+        if (resultSet.next())
+            return resultSet.getInt("id");
+        else
+            throw new SQLException("Channel doesn't Exist!");
+    }
+
+
+    // Query Methods
+
+    public Item[] getLastNewsOfChannel(int numOfRows, String channelLink) throws SQLException, MalformedURLException {
+        int channelId = getChannelId(channelLink);
+
+        PreparedStatement query = connection.prepareStatement(
+                "SELECT items.id,title,text,date,items.link FROM `items` INNER JOIN channels ON items.channelId = channels.id WHERE channelId = ? ORDER BY date DESC LIMIT ?"
+        );
+        query.setInt(1, channelId);
+        query.setInt(2, numOfRows);
+        ResultSet resultSet = query.executeQuery();
+        ArrayList<Item> items = new ArrayList<>();
+        while (resultSet.next()) {
+            Item item = new Item(
+                    resultSet.getString("title"),
+                    new URL(resultSet.getString("link")),
+                    null,
+                    resultSet.getDate("date"),
+                    channelId
+
+            );
+            items.add(item);
+        }
+        return items.toArray(new Item[0]);
     }
 }

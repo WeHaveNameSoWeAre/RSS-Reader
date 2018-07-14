@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URL;
 
-public class SiteUpdater {
+public class SiteUpdater implements Runnable {
     final Logger logger = LoggerFactory.getLogger(SiteUpdater.class);
     final DatabaseHandler db = DatabaseHandler.getInstance();
     private URL urlAddress;
@@ -32,7 +32,7 @@ public class SiteUpdater {
             logger.info("feed reading was successful for site : {}," +
                     "  {} items found!", feed.getTitle(), feed.getEntries().size());
 
-            Channel channel = new Channel(feed.getTitle(), feed.getDescription(), feed.getLink(), feed.getPublishedDate());
+            Channel channel = new Channel(feed.getTitle(), feed.getDescription(), urlAddress, feed.getPublishedDate());
             SiteConfig siteConfig = new FileSiteConfig(urlAddress.getHost());
             db.insertChannel(channel);
             int channelId = db.getChannelId(channel);
@@ -41,7 +41,7 @@ public class SiteUpdater {
                 String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
                 Item item = new Item(entry.getTitle(), new URL(entry.getLink()), description, entry.getPublishedDate(), channelId);
 
-                logger.info("Checking item {}", item.getTitle());
+                logger.trace("Checking item {}", item.getTitle());
                 if (db.checkItemExists(item)) continue;
 
                 try {
@@ -58,6 +58,7 @@ public class SiteUpdater {
             }
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
+            System.err.println("crawling failed for site" + urlAddress + "! for more information see rssReader.log");
         }
 
     }
@@ -73,6 +74,7 @@ public class SiteUpdater {
      * @return extracted article text
      * @throws IOException                                      if url is not valid
      * @throws org.jsoup.select.Selector.SelectorParseException if one of passed patterns is not valid (unchecked exception)
+     * @throws IllegalStateException                            if element found but text is null
      */
     String extractTextByPattern(URL link, String bodyPattern, String[] adPatterns) throws IOException {
         Document doc = Jsoup.connect(link.toExternalForm()).get();
@@ -80,6 +82,15 @@ public class SiteUpdater {
         for (String adPattern : adPatterns)
             doc.select(adPattern).remove();
 
-        return doc.select(bodyPattern).first().text();
+        String text = doc.select(bodyPattern).first().text();
+        if (text.trim().isEmpty())
+            throw new IllegalStateException("text is null");
+
+        return text;
+    }
+
+    @Override
+    public void run() {
+        update();
     }
 }
