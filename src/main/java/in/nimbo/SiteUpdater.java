@@ -32,6 +32,8 @@ public class SiteUpdater implements Runnable {
             logger.info("feed reading was successful for site : {}," +
                     "  {} items found!", feed.getTitle(), feed.getEntries().size());
 
+            logger.trace(feed.toString());
+
             Channel channel = new Channel(feed.getTitle(), feed.getDescription(), urlAddress, feed.getPublishedDate());
             SiteConfig siteConfig = new FileSiteConfig(urlAddress.getHost());
             db.insertChannel(channel);
@@ -47,13 +49,13 @@ public class SiteUpdater implements Runnable {
                 try {
                     String newsText = extractTextByPattern(item.getLink(), siteConfig.getBodyPattern(), siteConfig.getAdPatterns());
                     item.setFullText(newsText);
-                    db.insertItem(item);
                 } catch (IOException e) {
                     logger.warn(e.getMessage(), e);
                 } catch (Exception e) {
                     logger.info("failed to load fullText for item   {}, for more information enable debug level", item.getTitle());
-                    logger.debug("Printing Item : {}", item);
+                    logger.trace("Printing Item : {}", item);
                 }
+                db.insertItem(item); // TODO: 7/14/18 Add To Try Catch
 
             }
         } catch (Exception e) {

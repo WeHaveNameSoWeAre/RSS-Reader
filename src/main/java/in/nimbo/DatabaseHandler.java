@@ -10,12 +10,19 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Properties;
 
 public class DatabaseHandler {
     private final static Logger logger = LoggerFactory.getLogger(DatabaseHandler.class);
     private static DatabaseHandler instance = null;
-    private PreparedStatement insertItemStatement, getItemIdStatement, getChannelIdStatement, insertChannelStatement;
+    private PreparedStatement selectLastNewsStatement;
+    private PreparedStatement insertItemStatement;
+    private PreparedStatement getItemIdStatement;
+    private PreparedStatement getChannelIdStatement;
+    private PreparedStatement insertChannelStatement;
+    private PreparedStatement getItemCountForDayStatement;
     private Properties properties = new Properties();
     private Connection connection;
 
@@ -89,6 +96,14 @@ public class DatabaseHandler {
                 "INSERT INTO items(title, link, `desc`, text, date, channelId, linkHash)" +
                         " VALUES (?,?,?,?,?,?,SHA1(?))"
         );
+        selectLastNewsStatement = connection.prepareStatement(
+                "SELECT items.id,title,`desc`,text,date,items.link FROM `items`" +
+                        " INNER JOIN channels ON items.channelId = channels.id" +
+                        " WHERE channelId = ? ORDER BY date DESC LIMIT ?"
+        );
+        getItemCountForDayStatement = connection.prepareStatement(
+                "SELECT COUNT(*) AS num FROM items WHERE channelId = ? AND date BETWEEN ? AND ?"
+        );
     }
 
     public void insertChannel(Channel channel) throws SQLException {
@@ -127,7 +142,12 @@ public class DatabaseHandler {
         insertItemStatement.setString(2, item.getLink().toExternalForm());
         insertItemStatement.setString(3, item.getDescription());
         insertItemStatement.setString(4, item.getFullText());
-        insertItemStatement.setTimestamp(5, new java.sql.Timestamp(item.getPubDate().getTime()));
+
+        if (item.getPubDate() != null)
+            insertItemStatement.setTimestamp(5, new java.sql.Timestamp(item.getPubDate().getTime()));
+        else
+            insertItemStatement.setTimestamp(5, null);
+
         insertItemStatement.setInt(6, item.getChannelId());
         insertItemStatement.setString(7, item.getLink().toExternalForm());
 
@@ -159,12 +179,9 @@ public class DatabaseHandler {
     public Item[] getLastNewsOfChannel(int numOfRows, String channelLink) throws SQLException, MalformedURLException {
         int channelId = getChannelId(channelLink);
 
-        PreparedStatement query = connection.prepareStatement(
-                "SELECT items.id,title,text,date,items.link FROM `items` INNER JOIN channels ON items.channelId = channels.id WHERE channelId = ? ORDER BY date DESC LIMIT ?"
-        );
-        query.setInt(1, channelId);
-        query.setInt(2, numOfRows);
-        ResultSet resultSet = query.executeQuery();
+        selectLastNewsStatement.setInt(1, channelId);
+        selectLastNewsStatement.setInt(2, numOfRows);
+        ResultSet resultSet = selectLastNewsStatement.executeQuery();
         ArrayList<Item> items = new ArrayList<>();
         while (resultSet.next()) {
             Item item = new Item(
@@ -178,5 +195,39 @@ public class DatabaseHandler {
             items.add(item);
         }
         return items.toArray(new Item[0]);
+    }
+
+    public int getNumOfItems(Date dayDate, String channelLink) throws SQLException {
+        Date startOfDay = atStartOfDay(dayDate);
+        Date endOfDay = atEndOfDay(dayDate);
+        int channelId = getChannelId(channelLink);
+        getItemCountForDayStatement.setInt(1, channelId);
+        getItemCountForDayStatement.setObject(2, startOfDay);
+        getItemCountForDayStatement.setObject(3, endOfDay);
+        ResultSet resultSet = getItemCountForDayStatement.executeQuery();
+        if (resultSet.next())
+            return resultSet.getInt("num");
+        else
+            return 0;
+    }
+
+    private Date atEndOfDay(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 23);
+        calendar.set(Calendar.MINUTE, 59);
+        calendar.set(Calendar.SECOND, 59);
+        calendar.set(Calendar.MILLISECOND, 999);
+        return calendar.getTime();
+    }
+
+    private Date atStartOfDay(Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
     }
 }
