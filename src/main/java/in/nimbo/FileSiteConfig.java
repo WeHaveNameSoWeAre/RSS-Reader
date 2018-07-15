@@ -9,6 +9,11 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public class FileSiteConfig implements SiteConfig {
+    @Override
+    public void save() throws Exception {
+
+    }
+
     final Logger logger = LoggerFactory.getLogger(FileSiteConfig.class);
     private String siteName;
     private Properties properties = new Properties();

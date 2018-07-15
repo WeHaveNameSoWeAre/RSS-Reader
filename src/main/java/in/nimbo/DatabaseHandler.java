@@ -23,6 +23,9 @@ public class DatabaseHandler {
     private PreparedStatement getChannelIdStatement;
     private PreparedStatement insertChannelStatement;
     private PreparedStatement getItemCountForDayStatement;
+    private PreparedStatement insertConfigStatement;
+    private PreparedStatement selectConfigStatement;
+    private PreparedStatement updateConfigStatement;
     private Properties properties = new Properties();
     private Connection connection;
 
@@ -104,6 +107,17 @@ public class DatabaseHandler {
         getItemCountForDayStatement = connection.prepareStatement(
                 "SELECT COUNT(*) AS num FROM items WHERE channelId = ? AND date BETWEEN ? AND ?"
         );
+
+        selectConfigStatement = connection.prepareStatement(
+                "SELECT * FROM configs WHERE linkHash = SHA1(?)"
+        );
+
+        insertConfigStatement = connection.prepareStatement(
+                "INSERT INTO configs(link, bodyPattern, adPatterns, linkHash) VALUES (?,?,?,SHA1(?))"
+        );
+        updateConfigStatement = connection.prepareStatement(
+                "UPDATE configs SET bodyPattern = ?,adPatterns = ? WHERE id = ?"
+        );
     }
 
     public void insertChannel(Channel channel) throws SQLException {
@@ -173,9 +187,34 @@ public class DatabaseHandler {
             throw new SQLException("Channel doesn't Exist!");
     }
 
+    public Object[] getConfig(String siteLink) throws SQLException {
+        selectConfigStatement.setString(1, siteLink);
+        ResultSet resultSet = selectConfigStatement.executeQuery();
+        if (resultSet.next())
+            return new Object[]{resultSet.getInt("id"), resultSet.getString("bodyPattern"), resultSet.getString("adPatterns")};
+        else
+            throw new IllegalStateException("There were no config for that site");
+    }
+
+
+    public void insertConfig(String siteLink, String bodyPattern, String adPatterns) throws SQLException {
+        insertConfigStatement.setString(1, siteLink);
+        insertConfigStatement.setString(2, bodyPattern);
+        insertConfigStatement.setString(3, adPatterns);
+        insertConfigStatement.setString(4, siteLink);
+
+        insertConfigStatement.executeUpdate();
+    }
+
+    public void updateConfig(int id,String bodyPattern, String adPatterns) throws SQLException {
+        updateConfigStatement.setString(1,bodyPattern);
+        updateConfigStatement.setString(2,adPatterns);
+        updateConfigStatement.setInt(3,id);
+        updateConfigStatement.executeUpdate();
+    }
+
 
     // Query Methods
-
     public Item[] getLastNewsOfChannel(int numOfRows, String channelLink) throws SQLException, MalformedURLException {
         int channelId = getChannelId(channelLink);
 

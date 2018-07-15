@@ -3,7 +3,8 @@ package in.nimbo;
 import asg.cliche.Command;
 import asg.cliche.Param;
 import asg.cliche.ShellFactory;
-import com.rometools.rome.io.FeedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
 import java.io.IOException;
@@ -15,7 +16,9 @@ import java.security.cert.X509Certificate;
 
 
 public class App {
-    public static void main(String[] args) throws IOException, FeedException {
+    private final static Logger logger = LoggerFactory.getLogger(App.class);
+
+    public static void main(String[] args) {
         try {
             unUseCertificateForSSL();
 
@@ -24,7 +27,8 @@ public class App {
 
 
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("Program Exited With Error", e);
+            System.out.println("There Were Some Problems! :(  Please See Log File For More Information");
         }
     }
 
@@ -56,7 +60,40 @@ public class App {
 
     @Command
     public void crawl(@Param(name = "RSS Link", description = "rss link for site to crawl.") String rssLink) throws MalformedURLException {
-        SiteUpdater siteUpdater = new SiteUpdater(new URL("https://www.mehrnews.com/rss.aspx"));
-        siteUpdater.update();
+        try {
+            SiteUpdater siteUpdater = new SiteUpdater(new URL(rssLink));
+            siteUpdater.update();
+        } catch (MalformedURLException e) {
+            System.out.println("Please Enter a valid RSS URL");
+        } catch (Exception e) {
+            logger.warn("Crawling was unsuccessful for site " + rssLink, e);
+            System.out.println("Crawling failed. for more information see the logs!");
+        }
+    }
+
+    @Command(description = "add or update site configs")
+    public void addConfig(@Param(name = "site link") String siteLink,
+                          @Param(name = "body pattern") String bodyPattern) {
+        SiteConfig siteConfig = new DatabaseSiteConfig(siteLink, bodyPattern, null);
+        try {
+            siteConfig.save();
+            System.out.println("Adding config was successful");
+        } catch (Exception e) {
+            logger.warn("saving config was unsuccessful for site " + siteLink, e);
+            System.out.println("Adding Config Failed. for more information see the logs!");
+        }
+    }
+
+    @Command
+    public void addConfig(@Param(name = "site link") String siteLink, @Param(name = "body pattern") String bodyPattern,
+                          @Param(name = "ad patterns") String adPatterns) {
+        SiteConfig siteConfig = new DatabaseSiteConfig(siteLink, bodyPattern, adPatterns.split(";"));
+        try {
+            siteConfig.save();
+            System.out.println("Adding config was successful");
+        } catch (Exception e) {
+            logger.warn("saving config was unsuccessful for site " + siteLink, e);
+            System.out.println("Adding config failed. for more information see the logs!");
+        }
     }
 }
