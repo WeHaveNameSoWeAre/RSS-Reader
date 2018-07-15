@@ -206,43 +206,44 @@ public class DatabaseHandler {
         insertConfigStatement.executeUpdate();
     }
 
-    public void updateConfig(int id,String bodyPattern, String adPatterns) throws SQLException {
-        updateConfigStatement.setString(1,bodyPattern);
-        updateConfigStatement.setString(2,adPatterns);
-        updateConfigStatement.setInt(3,id);
+    public void updateConfig(int id, String bodyPattern, String adPatterns) throws SQLException {
+        updateConfigStatement.setString(1, bodyPattern);
+        updateConfigStatement.setString(2, adPatterns);
+        updateConfigStatement.setInt(3, id);
         updateConfigStatement.executeUpdate();
     }
 
 
     // Query Methods
-    public Item[] getLastNewsOfChannel(int numOfRows, String channelLink) throws SQLException, MalformedURLException {
-        int channelId = getChannelId(channelLink);
-
+    public Item[] getLastNewsOfChannel(int numOfRows, int channelId) throws SQLException {
         selectLastNewsStatement.setInt(1, channelId);
         selectLastNewsStatement.setInt(2, numOfRows);
         ResultSet resultSet = selectLastNewsStatement.executeQuery();
         ArrayList<Item> items = new ArrayList<>();
         while (resultSet.next()) {
-            Item item = new Item(
-                    resultSet.getString("title"),
-                    new URL(resultSet.getString("link")),
-                    null,
-                    resultSet.getDate("date"),
-                    channelId
+            try {
+                Item item = new Item(
+                        resultSet.getString("title"),
+                        new URL(resultSet.getString("link")),
+                        null,
+                        resultSet.getDate("date"),
+                        channelId
 
-            );
-            items.add(item);
+                );
+                items.add(item);
+            } catch (MalformedURLException e) {
+                logger.warn("item link is not valid", e);
+            }
         }
         return items.toArray(new Item[0]);
     }
 
-    public int getNumOfItems(Date dayDate, String channelLink) throws SQLException {
+    public int getNumOfItems(Date dayDate, int channelId) throws SQLException {
         Date startOfDay = atStartOfDay(dayDate);
         Date endOfDay = atEndOfDay(dayDate);
-        int channelId = getChannelId(channelLink);
         getItemCountForDayStatement.setInt(1, channelId);
-        getItemCountForDayStatement.setObject(2, startOfDay);
-        getItemCountForDayStatement.setObject(3, endOfDay);
+        getItemCountForDayStatement.setTimestamp(2, new Timestamp(startOfDay.getTime()));
+        getItemCountForDayStatement.setTimestamp(3, new Timestamp(endOfDay.getTime()));
         ResultSet resultSet = getItemCountForDayStatement.executeQuery();
         if (resultSet.next())
             return resultSet.getInt("num");
