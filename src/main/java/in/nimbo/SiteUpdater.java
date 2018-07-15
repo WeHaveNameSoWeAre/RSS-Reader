@@ -8,6 +8,7 @@ import in.nimbo.model.Channel;
 import in.nimbo.model.Item;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +27,9 @@ public class SiteUpdater implements Runnable {
     public void update() {
         logger.info("Start Updating: {}", urlAddress);
         try {
+
+            SiteConfig siteConfig = new DatabaseSiteConfig(urlAddress.getHost());
+
             SyndFeedInput input = new SyndFeedInput();
             SyndFeed feed = input.build(new XmlReader(urlAddress));
 
@@ -35,7 +39,6 @@ public class SiteUpdater implements Runnable {
             logger.trace(feed.toString());
 
             Channel channel = new Channel(feed.getTitle(), feed.getDescription(), urlAddress, feed.getPublishedDate());
-            SiteConfig siteConfig = new FileSiteConfig(urlAddress.getHost());
             db.insertChannel(channel);
             int channelId = db.getChannelId(channel);
 
@@ -49,13 +52,13 @@ public class SiteUpdater implements Runnable {
                 try {
                     String newsText = extractTextByPattern(item.getLink(), siteConfig.getBodyPattern(), siteConfig.getAdPatterns());
                     item.setFullText(newsText);
+                    db.insertItem(item);
                 } catch (IOException e) {
                     logger.warn(e.getMessage(), e);
                 } catch (Exception e) {
                     logger.info("failed to load fullText for item   {}, for more information enable debug level", item.getTitle());
                     logger.trace("Printing Item : {}", item);
                 }
-                db.insertItem(item); // TODO: 7/14/18 Add To Try Catch
 
             }
         } catch (Exception e) {
@@ -76,7 +79,7 @@ public class SiteUpdater implements Runnable {
      * @return extracted article text
      * @throws IOException                                      if url is not valid
      * @throws org.jsoup.select.Selector.SelectorParseException if one of passed patterns is not valid (unchecked exception)
-     * @throws IllegalStateException                            if element found but text is null
+     * @throws IllegalStateException                            if element not found or text is null
      */
     String extractTextByPattern(URL link, String bodyPattern, String[] adPatterns) throws IOException {
         Document doc = Jsoup.connect(link.toExternalForm()).get();
@@ -84,7 +87,12 @@ public class SiteUpdater implements Runnable {
         for (String adPattern : adPatterns)
             doc.select(adPattern).remove();
 
-        String text = doc.select(bodyPattern).first().text();
+        Element firstElement = doc.select(bodyPattern).first();
+
+        if (firstElement == null)
+            throw new IllegalStateException("element not found");
+
+        String text = firstElement.text();
         if (text.trim().isEmpty())
             throw new IllegalStateException("text is null");
 
