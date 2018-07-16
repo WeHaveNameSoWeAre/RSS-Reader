@@ -9,10 +9,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.*;
 import java.util.Date;
-import java.util.Properties;
 
 public class DatabaseHandler {
     private final static Logger logger = LoggerFactory.getLogger(DatabaseHandler.class);
@@ -27,6 +25,7 @@ public class DatabaseHandler {
     private PreparedStatement selectConfigStatement;
     private PreparedStatement updateConfigStatement;
     private PreparedStatement getChannelsBeforeDate;
+    private PreparedStatement selectAllChannelsSatement;
     private Properties properties = new Properties();
     private Connection connection;
 
@@ -122,6 +121,7 @@ public class DatabaseHandler {
         getChannelsBeforeDate = connection.prepareStatement(
                 "SELECT *FROM channels WHERE lastUpdate < DATE_SUB(NOW(),INTERVAL ? MINUTE) ORDER BY lastUpdate ASC"
         );
+        selectAllChannelsSatement = connection.prepareStatement("SELECT * FROM channels");
     }
 
     public void insertChannel(Channel channel) throws SQLException {
@@ -280,16 +280,54 @@ public class DatabaseHandler {
         try (ResultSet resultSet = getChannelsBeforeDate.executeQuery()) {
             ArrayList<Channel> channels = new ArrayList<>();
             while (resultSet.next()) {
-                channels.add(
-                        new Channel(
-                                resultSet.getString("name"),
-                                null,
-                                new URL(resultSet.getString("rssLink")),
-                                resultSet.getDate("lastUpdate")
-                        )
-                );
+                try {
+                    channels.add(
+                            new Channel(
+                                    resultSet.getString("name"),
+                                    null,
+                                    new URL(resultSet.getString("rssLink")),
+                                    resultSet.getDate("lastUpdate")
+                            )
+                    );
+                } catch (SQLException | MalformedURLException e) {
+                    logger.warn("error during getting channels", e);
+                }
             }
             return channels.toArray(new Channel[0]);
+        }
+    }
+
+    public List<Object[]> getAllChannels() throws SQLException {
+        try (ResultSet resultSet = selectAllChannelsSatement.executeQuery()) {
+            ArrayList<Object[]> channels = new ArrayList<>();
+            while (resultSet.next()) {
+                try {
+                    channels.add(
+                            new Object[]{resultSet.getInt("id"), resultSet.getString("name")}
+                    );
+                } catch (SQLException e) {
+                    logger.warn("error during getting channels", e);
+                }
+            }
+            return channels;
+        }
+    }
+
+    public void close() {
+        try {
+            getItemCountForDayStatement.close();
+            selectLastNewsStatement.close();
+            insertItemStatement.close();
+            getItemIdStatement.close();
+            getChannelIdStatement.close();
+            insertChannelStatement.close();
+            insertConfigStatement.close();
+            selectConfigStatement.close();
+            updateConfigStatement.close();
+            getChannelsBeforeDate.close();
+            connection.close();
+        } catch (SQLException e) {
+            logger.warn("There was some error during closing DB", e);
         }
     }
 }

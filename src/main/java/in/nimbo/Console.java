@@ -11,6 +11,7 @@ import java.net.URL;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class Console {
     private final static Logger logger = LoggerFactory.getLogger(Console.class);
@@ -66,10 +67,25 @@ public class Console {
                 for (Item item : lastNewsOfChannel) {
                     System.out.println(item);
                 }
-            } catch (SQLException e) {
-                logger.warn("sql exception happend", e);
+            } catch (Exception e) {
+                logger.warn("exception happend", e);
                 System.out.println("Operation failed. for more information see the logs!");
             }
+        }
+    }
+
+    @Command(description = "Show all channels")
+    public void showChannels() {
+        try {
+            List<Object[]> channels = DatabaseHandler.getInstance().getAllChannels();
+            for (Object[] channel : channels) {
+                System.out.println("id =" + channel[0]);
+                System.out.println(channel[1]);
+                System.out.println();
+            }
+        } catch (Exception e) {
+            logger.warn("exception happend", e);
+            System.out.println("Operation failed. for more information see the logs!");
         }
     }
 

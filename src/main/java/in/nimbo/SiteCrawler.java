@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URL;
+import java.sql.SQLException;
 
 public class SiteCrawler implements Runnable {
     final Logger logger = LoggerFactory.getLogger(SiteCrawler.class);
@@ -39,8 +40,15 @@ public class SiteCrawler implements Runnable {
             logger.trace(feed.toString());
 
             Channel channel = new Channel(feed.getTitle(), feed.getDescription(), urlAddress, feed.getPublishedDate());
-            db.insertChannel(channel);
-            int channelId = db.getChannelId(channel);
+
+            int channelId;
+
+            try {
+                channelId = db.getChannelId(channel);
+            } catch (SQLException e) {
+                db.insertChannel(channel);
+                channelId = db.getChannelId(channel);
+            }
 
             for (SyndEntry entry : feed.getEntries()) {
                 String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
