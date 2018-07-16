@@ -26,6 +26,7 @@ public class DatabaseHandler {
     private PreparedStatement insertConfigStatement;
     private PreparedStatement selectConfigStatement;
     private PreparedStatement updateConfigStatement;
+    private PreparedStatement getChannelsBeforeDate;
     private Properties properties = new Properties();
     private Connection connection;
 
@@ -117,6 +118,9 @@ public class DatabaseHandler {
         );
         updateConfigStatement = connection.prepareStatement(
                 "UPDATE configs SET bodyPattern = ?,adPatterns = ? WHERE id = ?"
+        );
+        getChannelsBeforeDate = connection.prepareStatement(
+                "SELECT *FROM channels WHERE lastUpdate < DATE_SUB(NOW(),INTERVAL ? MINUTE) ORDER BY lastUpdate ASC"
         );
     }
 
@@ -269,5 +273,23 @@ public class DatabaseHandler {
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTime();
+    }
+
+    public Channel[] getChannelsBeforeMinute(int minutes) throws SQLException, MalformedURLException {
+        getChannelsBeforeDate.setInt(1, minutes);
+        try (ResultSet resultSet = getChannelsBeforeDate.executeQuery()) {
+            ArrayList<Channel> channels = new ArrayList<>();
+            while (resultSet.next()) {
+                channels.add(
+                        new Channel(
+                                resultSet.getString("name"),
+                                null,
+                                new URL(resultSet.getString("rssLink")),
+                                resultSet.getDate("lastUpdate")
+                        )
+                );
+            }
+            return channels.toArray(new Channel[0]);
+        }
     }
 }
