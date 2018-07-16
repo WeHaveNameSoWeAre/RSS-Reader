@@ -18,8 +18,7 @@ public class Console {
     @Command
     public void crawl(@Param(name = "RSS Link", description = "rss link for site to crawl.") String rssLink) throws MalformedURLException {
         try {
-            SiteUpdater siteUpdater = new SiteUpdater(new URL(rssLink));
-            siteUpdater.update();
+            SiteUpdater.getInstance().crawl(new URL(rssLink));
         } catch (MalformedURLException e) {
             System.out.println("Please Enter a valid RSS URL");
         } catch (Exception e) {
