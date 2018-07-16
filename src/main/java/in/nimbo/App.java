@@ -17,6 +17,11 @@ public class App {
     public static void main(String[] args) {
         try {
             unUseCertificateForSSL();
+
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                DatabaseHandler.getInstance().close();
+            }));
+
             SiteUpdater.getInstance();
             ShellFactory.createConsoleShell("RSS Reader", "Enter '?list' to list all commands",
                     new Console()).commandLoop();
