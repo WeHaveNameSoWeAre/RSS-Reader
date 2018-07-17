@@ -1,5 +1,6 @@
 package in.nimbo;
 
+import in.nimbo.impl.mysql.MysqlConnectionPool;
 import in.nimbo.model.Channel;
 import in.nimbo.model.Item;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ public class DatabaseHandler {
     public void insertChannel(Channel channel) throws SQLException {
 
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement insertChannelStatement = connection.prepareStatement(
                         "INSERT INTO `channels` (name, rssLink, rssLinkHash, link) VALUES (?,?,SHA1(?),?)")
         ) {
@@ -59,7 +60,7 @@ public class DatabaseHandler {
     public int getChannelId(Channel channel) throws SQLException {
 
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement getChannelIdStatement = connection.prepareStatement(
                         "SELECT id FROM channels WHERE rssLinkHash = SHA1(?)"
                 )
@@ -76,7 +77,7 @@ public class DatabaseHandler {
 
     public List<Object[]> getAllChannels() throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement selectAllChannelsStatement = connection.prepareStatement("SELECT * FROM channels");
                 ResultSet resultSet = selectAllChannelsStatement.executeQuery()
         ) {
@@ -96,7 +97,7 @@ public class DatabaseHandler {
 
     public Channel[] getChannelsBeforeMinute(int minutes) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement getChannelsBeforeDate = connection.prepareStatement(
                         "SELECT *FROM channels WHERE lastUpdate < DATE_SUB(NOW(),INTERVAL ? MINUTE) ORDER BY lastUpdate ASC"
                 )
@@ -124,7 +125,7 @@ public class DatabaseHandler {
 
     public boolean checkItemExists(Item item) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement getItemIdStatement =
                         connection.prepareStatement("SELECT id FROM items WHERE linkHash = SHA1(?)")
         ) {
@@ -141,7 +142,7 @@ public class DatabaseHandler {
 
     public void insertItem(Item item) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement insertItemStatement = connection.prepareStatement(
                         "INSERT INTO items(title, link, `desc`, text, date, channelId, linkHash)" +
                                 " VALUES (?,?,?,?,?,?,SHA1(?))"
@@ -166,7 +167,7 @@ public class DatabaseHandler {
 
     public Item[] getLastNewsOfChannel(int numOfRows, int channelId) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement selectLastNewsStatement = connection.prepareStatement(
                         "SELECT items.id,title,`desc`,text,date,items.link FROM `items`" +
                                 " INNER JOIN channels ON items.channelId = channels.id" +
@@ -200,7 +201,7 @@ public class DatabaseHandler {
 
     public int getNumOfItems(Date dayDate, int channelId) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement getItemCountForDayStatement = connection.prepareStatement(
                         "SELECT COUNT(*) AS num FROM items WHERE channelId = ? AND date BETWEEN ? AND ?"
                 )
@@ -243,7 +244,7 @@ public class DatabaseHandler {
 
     public Object[] getConfig(String siteLink) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement selectConfigStatement = connection.prepareStatement(
                         "SELECT * FROM configs WHERE linkHash = SHA1(?)"
                 )
@@ -261,7 +262,7 @@ public class DatabaseHandler {
 
     public void insertConfig(String siteLink, String bodyPattern, String adPatterns) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement insertConfigStatement = connection.prepareStatement(
                         "INSERT INTO configs(link, bodyPattern, adPatterns, linkHash) VALUES (?,?,?,SHA1(?))"
                 )
@@ -277,7 +278,7 @@ public class DatabaseHandler {
 
     public void updateConfig(int id, String bodyPattern, String adPatterns) throws SQLException {
         try (
-                Connection connection = ConnectionPool.getConnection();
+                Connection connection = MysqlConnectionPool.getConnection();
                 PreparedStatement updateConfigStatement = connection.prepareStatement(
                         "UPDATE configs SET bodyPattern = ?,adPatterns = ? WHERE id = ?"
                 )

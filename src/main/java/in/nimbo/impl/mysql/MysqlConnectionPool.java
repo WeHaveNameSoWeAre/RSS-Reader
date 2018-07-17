@@ -1,4 +1,4 @@
-package in.nimbo;
+package in.nimbo.impl.mysql;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -10,13 +10,13 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public class ConnectionPool {
-    private final static Logger logger = LoggerFactory.getLogger(ConnectionPool.class);
+public class MysqlConnectionPool {
+    private final static Logger logger = LoggerFactory.getLogger(MysqlConnectionPool.class);
     private static final Object mutex = new Object();
-    private static ConnectionPool instance;
+    private static MysqlConnectionPool instance;
     private volatile HikariDataSource ds;
 
-    private ConnectionPool() {
+    private MysqlConnectionPool() {
         Properties properties = new Properties();
         try {
             properties.load(getClass().getResourceAsStream("/databaseConfig.properties"));
@@ -57,7 +57,7 @@ public class ConnectionPool {
         if (instance == null) {
             synchronized (mutex) {
                 if (instance == null)
-                    instance = new ConnectionPool();
+                    instance = new MysqlConnectionPool();
             }
         }
         return instance.ds.getConnection();

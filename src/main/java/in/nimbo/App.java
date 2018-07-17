@@ -1,11 +1,11 @@
 package in.nimbo;
 
 import asg.cliche.ShellFactory;
+import in.nimbo.impl.mysql.MysqlConnectionPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
-import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
@@ -20,7 +20,7 @@ public class App {
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 SiteUpdater.getInstance().close();
-                ConnectionPool.close();
+                MysqlConnectionPool.close();
             }));
 
             SiteUpdater.getInstance();
