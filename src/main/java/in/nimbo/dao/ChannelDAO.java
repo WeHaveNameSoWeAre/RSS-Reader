@@ -13,5 +13,5 @@ public interface ChannelDAO {
 
     List<Channel> getAllChannels() throws SQLException;
 
-    Channel[] getChannelsUpdatedBefore(int minutes) throws SQLException;
+    List<Channel> getChannelsUpdatedBefore(int minutes) throws SQLException;
 }
