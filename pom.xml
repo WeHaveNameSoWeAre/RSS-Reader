@@ -18,7 +18,7 @@
         <slf4j.version>1.7.16</slf4j.version>
         <jsoup.version>1.11.3</jsoup.version>
         <hikari.version>3.1.0</hikari.version>
-        <cliche.version>1.0</cliche.version>
+        <cliche.version>110413</cliche.version>
     </properties>
 
     <dependencies>
@@ -60,11 +60,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.asg.cliche</groupId>
+            <groupId>com.googlecode.clichemaven</groupId>
             <artifactId>cliche</artifactId>
             <version>${cliche.version}</version>
-            <scope>system</scope>
-            <systemPath>${basedir}/lib/asg.cliche-110413.jar</systemPath>
         </dependency>
 
 
@@ -113,6 +111,31 @@
                     <target>8</target>
                 </configuration>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+                    <!-- Run shade goal on package phase -->
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <!-- add Main-Class to manifest file -->
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>in.nimbo.App</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 </project>
