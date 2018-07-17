@@ -2,34 +2,97 @@ package in.nimbo.model;
 
 import java.net.URL;
 import java.util.Date;
+import java.util.Objects;
 
 public class Channel {
-    private String title;
-    private String description;
-    private URL link;
-    private Date lastBuildDate;
+    private Integer id;
+    private String name;
+    private URL rssLink;
+    private String link;
+    private Date lastUpdate;
+
+    public Channel(String name, URL rssLink) {
+        this(name, rssLink, new Date());
+    }
+
+    public Channel(String name, URL RssLink, Date lastUpdate) {
+        this(name, RssLink, lastUpdate, RssLink.getHost());
+    }
 
 
-    public Channel(String title, String description, URL link, Date lastBuildDate) {
-        this.title = title;
-        this.description = description;
+    public Channel(String name, URL rssLink, Date lastUpdate, String link) {
+        this(null, name, rssLink, lastUpdate, link);
+    }
+
+    public Channel(Integer id, String name, URL rssLink, Date lastUpdate, String link) {
+        this.id = id;
+        this.name = name;
+        this.rssLink = rssLink;
         this.link = link;
-        this.lastBuildDate = lastBuildDate;
+        this.lastUpdate = lastUpdate;
     }
 
-    public String getTitle() {
-        return title;
+    public Integer getId() {
+        return id;
     }
 
-    public String getDescription() {
-        return description;
+    public void setId(Integer id) {
+        this.id = id;
     }
 
-    public URL getLink() {
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public URL getRssLink() {
+        return rssLink;
+    }
+
+    public void setRssLink(URL rssLink) {
+        this.rssLink = rssLink;
+    }
+
+    public String getLink() {
         return link;
     }
 
-    public Date getLastBuildDate() {
-        return lastBuildDate;
+    public void setLink(String link) {
+        this.link = link;
+    }
+
+    public Date getLastUpdate() {
+        return lastUpdate;
+    }
+
+    public void setLastUpdate(Date lastUpdate) {
+        this.lastUpdate = lastUpdate;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Channel channel = (Channel) o;
+        return Objects.equals(rssLink, channel.rssLink);
+    }
+
+    @Override
+    public String toString() {
+        return "Channel{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", rssLink=" + rssLink +
+                ", link='" + link + '\'' +
+                ", lastUpdate=" + lastUpdate +
+                '}';
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(rssLink);
     }
 }

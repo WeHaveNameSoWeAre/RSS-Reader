@@ -17,7 +17,7 @@ public class Console {
     private final static Logger logger = LoggerFactory.getLogger(Console.class);
 
     @Command
-    public void crawl(@Param(name = "RSS Link", description = "rss link for site to crawl.") String rssLink) throws MalformedURLException {
+    public void crawl(@Param(name = "RSS Link", description = "rss link for site to crawl.") String rssLink) {
         try {
             SiteUpdater.getInstance().crawl(new URL(rssLink));
         } catch (MalformedURLException e) {

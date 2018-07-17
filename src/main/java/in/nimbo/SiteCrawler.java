@@ -39,7 +39,7 @@ public class SiteCrawler implements Runnable {
 
             logger.trace(feed.toString());
 
-            Channel channel = new Channel(feed.getTitle(), feed.getDescription(), urlAddress, feed.getPublishedDate());
+            Channel channel = new Channel(feed.getTitle(), urlAddress, feed.getPublishedDate());
 
             int channelId;
 

@@ -34,7 +34,7 @@ public class App {
         }
     }
 
-    private static void unUseCertificateForSSL() throws NoSuchAlgorithmException, KeyManagementException, IOException {
+    private static void unUseCertificateForSSL() throws NoSuchAlgorithmException, KeyManagementException {
         TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager() {
             public java.security.cert.X509Certificate[] getAcceptedIssuers() {
                 return null;

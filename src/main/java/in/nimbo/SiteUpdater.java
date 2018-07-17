@@ -52,8 +52,8 @@ public class SiteUpdater {
             try {
                 Channel[] channels = db.getChannelsBeforeMinute(10);
                 for (Channel channel : channels) {
-                    logger.info("Scheduled Channel Crawling Started for {}", channel.getTitle());
-                    crawl(channel.getLink());
+                    logger.info("Scheduled Channel Crawling Started for {}", channel.getName());
+                    crawl(channel.getRssLink());
                 }
 
             } catch (SQLException e) {

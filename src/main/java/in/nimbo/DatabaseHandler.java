@@ -37,17 +37,17 @@ public class DatabaseHandler {
                         "INSERT INTO `channels` (name, rssLink, rssLinkHash, link) VALUES (?,?,SHA1(?),?)")
         ) {
 
-            insertChannelStatement.setString(1, channel.getTitle());
-            insertChannelStatement.setString(2, channel.getLink().toExternalForm());
-            insertChannelStatement.setString(3, channel.getLink().toExternalForm());
-            insertChannelStatement.setString(4, (channel.getLink()).getHost());
+            insertChannelStatement.setString(1, channel.getName());
+            insertChannelStatement.setString(2, channel.getRssLink().toExternalForm());
+            insertChannelStatement.setString(3, channel.getRssLink().toExternalForm());
+            insertChannelStatement.setString(4, (channel.getRssLink()).getHost());
             insertChannelStatement.executeUpdate();
 
         } catch (SQLIntegrityConstraintViolationException e) {
             switch (e.getErrorCode()) {
                 case 1062: //ERR_DUPLICATE Code
                 case 1586: //ERR_DUPLICATE_WITH_KEY Code
-                    logger.debug("channel {} already exists in database!", channel.getLink());
+                    logger.debug("channel {} already exists in database!", channel.getRssLink());
                     break;
                 default:
                     logger.warn("insertChannel sql statement not executed", e);
@@ -66,10 +66,7 @@ public class DatabaseHandler {
             getItemIdStatement.setString(1, item.getLink().toExternalForm());
 
             try (ResultSet resultSet = getItemIdStatement.executeQuery()) {
-                if (resultSet.next())
-                    return true;
-                else
-                    return false;
+                return resultSet.next();
             }
 
         }
@@ -109,7 +106,7 @@ public class DatabaseHandler {
                         "SELECT id FROM channels WHERE rssLinkHash = SHA1(?)"
                 )
         ) {
-            getChannelIdStatement.setString(1, channel.getLink().toExternalForm());
+            getChannelIdStatement.setString(1, channel.getRssLink().toExternalForm());
             try (ResultSet resultSet = getChannelIdStatement.executeQuery()) {
                 if (resultSet.next())
                     return resultSet.getInt("id");
@@ -259,7 +256,6 @@ public class DatabaseHandler {
                         channels.add(
                                 new Channel(
                                         resultSet.getString("name"),
-                                        null,
                                         new URL(resultSet.getString("rssLink")),
                                         resultSet.getDate("lastUpdate")
                                 )
