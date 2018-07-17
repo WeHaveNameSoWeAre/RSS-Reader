@@ -56,6 +56,72 @@ public class DatabaseHandler {
         }
     }
 
+    public int getChannelId(Channel channel) throws SQLException {
+
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement getChannelIdStatement = connection.prepareStatement(
+                        "SELECT id FROM channels WHERE rssLinkHash = SHA1(?)"
+                )
+        ) {
+            getChannelIdStatement.setString(1, channel.getRssLink().toExternalForm());
+            try (ResultSet resultSet = getChannelIdStatement.executeQuery()) {
+                if (resultSet.next())
+                    return resultSet.getInt("id");
+                else
+                    throw new SQLException("Channel doesn't Exist!");
+            }
+        }
+    }
+
+    public List<Object[]> getAllChannels() throws SQLException {
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement selectAllChannelsStatement = connection.prepareStatement("SELECT * FROM channels");
+                ResultSet resultSet = selectAllChannelsStatement.executeQuery()
+        ) {
+            ArrayList<Object[]> channels = new ArrayList<>();
+            while (resultSet.next()) {
+                try {
+                    channels.add(
+                            new Object[]{resultSet.getInt("id"), resultSet.getString("name")}
+                    );
+                } catch (SQLException e) {
+                    logger.warn("error during getting channels", e);
+                }
+            }
+            return channels;
+        }
+    }
+
+    public Channel[] getChannelsBeforeMinute(int minutes) throws SQLException {
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement getChannelsBeforeDate = connection.prepareStatement(
+                        "SELECT *FROM channels WHERE lastUpdate < DATE_SUB(NOW(),INTERVAL ? MINUTE) ORDER BY lastUpdate ASC"
+                )
+        ) {
+            getChannelsBeforeDate.setInt(1, minutes);
+            try (ResultSet resultSet = getChannelsBeforeDate.executeQuery()) {
+                ArrayList<Channel> channels = new ArrayList<>();
+                while (resultSet.next()) {
+                    try {
+                        channels.add(
+                                new Channel(
+                                        resultSet.getString("name"),
+                                        new URL(resultSet.getString("rssLink")),
+                                        resultSet.getDate("lastUpdate")
+                                )
+                        );
+                    } catch (SQLException | MalformedURLException e) {
+                        logger.warn("error during getting channels", e);
+                    }
+                }
+                return channels.toArray(new Channel[0]);
+            }
+        }
+    }
+
     public boolean checkItemExists(Item item) throws SQLException {
         try (
                 Connection connection = ConnectionPool.getConnection();
@@ -98,74 +164,6 @@ public class DatabaseHandler {
         }
     }
 
-    public int getChannelId(Channel channel) throws SQLException {
-
-        try (
-                Connection connection = ConnectionPool.getConnection();
-                PreparedStatement getChannelIdStatement = connection.prepareStatement(
-                        "SELECT id FROM channels WHERE rssLinkHash = SHA1(?)"
-                )
-        ) {
-            getChannelIdStatement.setString(1, channel.getRssLink().toExternalForm());
-            try (ResultSet resultSet = getChannelIdStatement.executeQuery()) {
-                if (resultSet.next())
-                    return resultSet.getInt("id");
-                else
-                    throw new SQLException("Channel doesn't Exist!");
-            }
-        }
-    }
-
-    public Object[] getConfig(String siteLink) throws SQLException {
-        try (
-                Connection connection = ConnectionPool.getConnection();
-                PreparedStatement selectConfigStatement = connection.prepareStatement(
-                        "SELECT * FROM configs WHERE linkHash = SHA1(?)"
-                )
-        ) {
-            selectConfigStatement.setString(1, siteLink);
-            try (ResultSet resultSet = selectConfigStatement.executeQuery()) {
-                if (resultSet.next())
-                    return new Object[]{resultSet.getInt("id"), resultSet.getString("bodyPattern"), resultSet.getString("adPatterns")};
-                else
-                    throw new IllegalStateException("There were no config for that site");
-            }
-        }
-    }
-
-
-    public void insertConfig(String siteLink, String bodyPattern, String adPatterns) throws SQLException {
-        try (
-                Connection connection = ConnectionPool.getConnection();
-                PreparedStatement insertConfigStatement = connection.prepareStatement(
-                        "INSERT INTO configs(link, bodyPattern, adPatterns, linkHash) VALUES (?,?,?,SHA1(?))"
-                )
-        ) {
-            insertConfigStatement.setString(1, siteLink);
-            insertConfigStatement.setString(2, bodyPattern);
-            insertConfigStatement.setString(3, adPatterns);
-            insertConfigStatement.setString(4, siteLink);
-
-            insertConfigStatement.executeUpdate();
-        }
-    }
-
-    public void updateConfig(int id, String bodyPattern, String adPatterns) throws SQLException {
-        try (
-                Connection connection = ConnectionPool.getConnection();
-                PreparedStatement updateConfigStatement = connection.prepareStatement(
-                        "UPDATE configs SET bodyPattern = ?,adPatterns = ? WHERE id = ?"
-                )
-        ) {
-            updateConfigStatement.setString(1, bodyPattern);
-            updateConfigStatement.setString(2, adPatterns);
-            updateConfigStatement.setInt(3, id);
-            updateConfigStatement.executeUpdate();
-        }
-    }
-
-
-    // Query Methods
     public Item[] getLastNewsOfChannel(int numOfRows, int channelId) throws SQLException {
         try (
                 Connection connection = ConnectionPool.getConnection();
@@ -242,51 +240,52 @@ public class DatabaseHandler {
         return calendar.getTime();
     }
 
-    public Channel[] getChannelsBeforeMinute(int minutes) throws SQLException {
+
+    public Object[] getConfig(String siteLink) throws SQLException {
         try (
                 Connection connection = ConnectionPool.getConnection();
-                PreparedStatement getChannelsBeforeDate = connection.prepareStatement(
-                        "SELECT *FROM channels WHERE lastUpdate < DATE_SUB(NOW(),INTERVAL ? MINUTE) ORDER BY lastUpdate ASC"
+                PreparedStatement selectConfigStatement = connection.prepareStatement(
+                        "SELECT * FROM configs WHERE linkHash = SHA1(?)"
                 )
         ) {
-            getChannelsBeforeDate.setInt(1, minutes);
-            try (ResultSet resultSet = getChannelsBeforeDate.executeQuery()) {
-                ArrayList<Channel> channels = new ArrayList<>();
-                while (resultSet.next()) {
-                    try {
-                        channels.add(
-                                new Channel(
-                                        resultSet.getString("name"),
-                                        new URL(resultSet.getString("rssLink")),
-                                        resultSet.getDate("lastUpdate")
-                                )
-                        );
-                    } catch (SQLException | MalformedURLException e) {
-                        logger.warn("error during getting channels", e);
-                    }
-                }
-                return channels.toArray(new Channel[0]);
+            selectConfigStatement.setString(1, siteLink);
+            try (ResultSet resultSet = selectConfigStatement.executeQuery()) {
+                if (resultSet.next())
+                    return new Object[]{resultSet.getInt("id"), resultSet.getString("bodyPattern"), resultSet.getString("adPatterns")};
+                else
+                    throw new IllegalStateException("There were no config for that site");
             }
         }
     }
 
-    public List<Object[]> getAllChannels() throws SQLException {
+
+    public void insertConfig(String siteLink, String bodyPattern, String adPatterns) throws SQLException {
         try (
                 Connection connection = ConnectionPool.getConnection();
-                PreparedStatement selectAllChannelsStatement = connection.prepareStatement("SELECT * FROM channels");
-                ResultSet resultSet = selectAllChannelsStatement.executeQuery()
+                PreparedStatement insertConfigStatement = connection.prepareStatement(
+                        "INSERT INTO configs(link, bodyPattern, adPatterns, linkHash) VALUES (?,?,?,SHA1(?))"
+                )
         ) {
-            ArrayList<Object[]> channels = new ArrayList<>();
-            while (resultSet.next()) {
-                try {
-                    channels.add(
-                            new Object[]{resultSet.getInt("id"), resultSet.getString("name")}
-                    );
-                } catch (SQLException e) {
-                    logger.warn("error during getting channels", e);
-                }
-            }
-            return channels;
+            insertConfigStatement.setString(1, siteLink);
+            insertConfigStatement.setString(2, bodyPattern);
+            insertConfigStatement.setString(3, adPatterns);
+            insertConfigStatement.setString(4, siteLink);
+
+            insertConfigStatement.executeUpdate();
+        }
+    }
+
+    public void updateConfig(int id, String bodyPattern, String adPatterns) throws SQLException {
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement updateConfigStatement = connection.prepareStatement(
+                        "UPDATE configs SET bodyPattern = ?,adPatterns = ? WHERE id = ?"
+                )
+        ) {
+            updateConfigStatement.setString(1, bodyPattern);
+            updateConfigStatement.setString(2, adPatterns);
+            updateConfigStatement.setInt(3, id);
+            updateConfigStatement.executeUpdate();
         }
     }
 }
