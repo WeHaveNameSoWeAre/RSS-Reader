@@ -19,7 +19,8 @@ public class App {
             unUseCertificateForSSL();
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                DatabaseHandler.getInstance().close();
+                SiteUpdater.getInstance().close();
+                ConnectionPool.close();
             }));
 
             SiteUpdater.getInstance();

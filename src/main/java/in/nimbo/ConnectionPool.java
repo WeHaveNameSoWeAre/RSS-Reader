@@ -63,7 +63,8 @@ public class ConnectionPool {
         return instance.ds.getConnection();
     }
 
-    public void close() {
-        ds.close();
+    public synchronized static void close() {
+        if (instance != null && instance.ds != null)
+            instance.ds.close();
     }
 }

@@ -5,29 +5,17 @@ import in.nimbo.model.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 public class DatabaseHandler {
     private final static Logger logger = LoggerFactory.getLogger(DatabaseHandler.class);
     private static DatabaseHandler instance = null;
-    private PreparedStatement selectLastNewsStatement;
-    private PreparedStatement insertItemStatement;
-    private PreparedStatement getItemIdStatement;
-    private PreparedStatement getChannelIdStatement;
-    private PreparedStatement insertChannelStatement;
-    private PreparedStatement getItemCountForDayStatement;
-    private PreparedStatement insertConfigStatement;
-    private PreparedStatement selectConfigStatement;
-    private PreparedStatement updateConfigStatement;
-    private PreparedStatement getChannelsBeforeDate;
-    private PreparedStatement selectAllChannelsSatement;
-    private Properties properties = new Properties();
-    private Connection connection;
 
     private DatabaseHandler() {
     }
@@ -35,97 +23,19 @@ public class DatabaseHandler {
     public static DatabaseHandler getInstance() {
         if (instance == null) {
             instance = new DatabaseHandler();
-            try {
-                instance.initDatabaseConnection();
-                instance.initPreparedStatements();
-            } catch (Exception e) {
-                logger.error("database Connection Failed!!", e);
-                instance = null;
-                throw new RuntimeException("database Connection Failed!!", e);
-            }
         }
 
         return instance;
     }
 
-    private void initDatabaseConnection() throws ClassNotFoundException, SQLException {
-        try {
-            properties.load(getClass().getResourceAsStream("/databaseConfig.properties"));
-        } catch (IOException e) {
-            logger.warn("database config file opening error! Default values will be used!", e);
-        }
-
-        Object DBusername = properties.getOrDefault("username", "root");
-        Object DBpassword = properties.getOrDefault("password", "");
-        Object DBhostname = properties.getOrDefault("hostname", "localhost");
-        Object DBport = properties.getOrDefault("port", "3306");
-        Object DBname = properties.getOrDefault("databaseName", "rss_reader");
-
-        logger.debug("database username: {}", DBusername);
-        logger.debug("database password: {}", DBpassword);
-        logger.debug("database hostname: {}", DBhostname);
-        logger.debug("database port: {}", DBport);
-        logger.debug("database DBName: {}", DBname);
-
-        String driverString = String.format("jdbc:mysql://%s:%s/%s?useUnicode=true&characterEncoding=utf8",
-                DBhostname,
-                DBport,
-                DBname
-        );
-
-        Class.forName("com.mysql.jdbc.Driver");
-
-        connection = DriverManager.getConnection(
-                driverString,
-                (String) DBusername,
-                (String) DBpassword
-        );
-
-        Statement stmt = connection.createStatement();
-        stmt.executeQuery("SET NAMES 'UTF8'");
-        stmt.executeQuery("SET CHARACTER SET 'UTF8'");
-
-        logger.info("Connected to Database");
-
-
-    }
-
-    private void initPreparedStatements() throws SQLException {
-        insertChannelStatement = connection.prepareStatement(
-                "INSERT INTO `channels` (name, rssLink, rssLinkHash, link) VALUES (?,?,SHA1(?),?)");
-        getChannelIdStatement = connection.prepareStatement("SELECT id FROM channels WHERE rssLinkHash = SHA1(?)");
-        getItemIdStatement = connection.prepareStatement("SELECT id FROM items WHERE linkHash = SHA1(?)");
-        insertItemStatement = connection.prepareStatement(
-                "INSERT INTO items(title, link, `desc`, text, date, channelId, linkHash)" +
-                        " VALUES (?,?,?,?,?,?,SHA1(?))"
-        );
-        selectLastNewsStatement = connection.prepareStatement(
-                "SELECT items.id,title,`desc`,text,date,items.link FROM `items`" +
-                        " INNER JOIN channels ON items.channelId = channels.id" +
-                        " WHERE channelId = ? ORDER BY date DESC LIMIT ?"
-        );
-        getItemCountForDayStatement = connection.prepareStatement(
-                "SELECT COUNT(*) AS num FROM items WHERE channelId = ? AND date BETWEEN ? AND ?"
-        );
-
-        selectConfigStatement = connection.prepareStatement(
-                "SELECT * FROM configs WHERE linkHash = SHA1(?)"
-        );
-
-        insertConfigStatement = connection.prepareStatement(
-                "INSERT INTO configs(link, bodyPattern, adPatterns, linkHash) VALUES (?,?,?,SHA1(?))"
-        );
-        updateConfigStatement = connection.prepareStatement(
-                "UPDATE configs SET bodyPattern = ?,adPatterns = ? WHERE id = ?"
-        );
-        getChannelsBeforeDate = connection.prepareStatement(
-                "SELECT *FROM channels WHERE lastUpdate < DATE_SUB(NOW(),INTERVAL ? MINUTE) ORDER BY lastUpdate ASC"
-        );
-        selectAllChannelsSatement = connection.prepareStatement("SELECT * FROM channels");
-    }
 
     public void insertChannel(Channel channel) throws SQLException {
-        try {
+
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement insertChannelStatement = connection.prepareStatement(
+                        "INSERT INTO `channels` (name, rssLink, rssLinkHash, link) VALUES (?,?,SHA1(?),?)")
+        ) {
 
             insertChannelStatement.setString(1, channel.getTitle());
             insertChannelStatement.setString(2, channel.getLink().toExternalForm());
@@ -147,112 +57,171 @@ public class DatabaseHandler {
     }
 
     public boolean checkItemExists(Item item) throws SQLException {
-        getItemIdStatement.setString(1, item.getLink().toExternalForm());
-        ResultSet resultSet = getItemIdStatement.executeQuery();
-        if (resultSet.next())
-            return true;
-        else
-            return false;
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement getItemIdStatement =
+                        connection.prepareStatement("SELECT id FROM items WHERE linkHash = SHA1(?)")
+        ) {
+
+            getItemIdStatement.setString(1, item.getLink().toExternalForm());
+
+            try (ResultSet resultSet = getItemIdStatement.executeQuery()) {
+                if (resultSet.next())
+                    return true;
+                else
+                    return false;
+            }
+
+        }
+
     }
 
     public void insertItem(Item item) throws SQLException {
-        insertItemStatement.setString(1, item.getTitle());
-        insertItemStatement.setString(2, item.getLink().toExternalForm());
-        insertItemStatement.setString(3, item.getDescription());
-        insertItemStatement.setString(4, item.getFullText());
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement insertItemStatement = connection.prepareStatement(
+                        "INSERT INTO items(title, link, `desc`, text, date, channelId, linkHash)" +
+                                " VALUES (?,?,?,?,?,?,SHA1(?))"
+                )
+        ) {
+            insertItemStatement.setString(1, item.getTitle());
+            insertItemStatement.setString(2, item.getLink().toExternalForm());
+            insertItemStatement.setString(3, item.getDescription());
+            insertItemStatement.setString(4, item.getFullText());
 
-        if (item.getPubDate() != null)
-            insertItemStatement.setTimestamp(5, new java.sql.Timestamp(item.getPubDate().getTime()));
-        else
-            insertItemStatement.setTimestamp(5, null);
+            if (item.getPubDate() != null)
+                insertItemStatement.setTimestamp(5, new Timestamp(item.getPubDate().getTime()));
+            else
+                insertItemStatement.setTimestamp(5, null);
 
-        insertItemStatement.setInt(6, item.getChannelId());
-        insertItemStatement.setString(7, item.getLink().toExternalForm());
+            insertItemStatement.setInt(6, item.getChannelId());
+            insertItemStatement.setString(7, item.getLink().toExternalForm());
 
-        insertItemStatement.executeUpdate();
+            insertItemStatement.executeUpdate();
+        }
     }
 
     public int getChannelId(Channel channel) throws SQLException {
-        getChannelIdStatement.setString(1, channel.getLink().toExternalForm());
-        ResultSet resultSet = getChannelIdStatement.executeQuery();
-        if (resultSet.next())
-            return resultSet.getInt("id");
-        else
-            throw new SQLException("Channel doesn't Exist!");
-    }
 
-    public int getChannelId(String channelLink) throws SQLException {
-        PreparedStatement query = connection.prepareStatement("SELECT id FROM channels WHERE link = ?");
-        query.setString(1, channelLink.trim());
-        ResultSet resultSet = query.executeQuery();
-        if (resultSet.next())
-            return resultSet.getInt("id");
-        else
-            throw new SQLException("Channel doesn't Exist!");
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement getChannelIdStatement = connection.prepareStatement(
+                        "SELECT id FROM channels WHERE rssLinkHash = SHA1(?)"
+                )
+        ) {
+            getChannelIdStatement.setString(1, channel.getLink().toExternalForm());
+            try (ResultSet resultSet = getChannelIdStatement.executeQuery()) {
+                if (resultSet.next())
+                    return resultSet.getInt("id");
+                else
+                    throw new SQLException("Channel doesn't Exist!");
+            }
+        }
     }
 
     public Object[] getConfig(String siteLink) throws SQLException {
-        selectConfigStatement.setString(1, siteLink);
-        ResultSet resultSet = selectConfigStatement.executeQuery();
-        if (resultSet.next())
-            return new Object[]{resultSet.getInt("id"), resultSet.getString("bodyPattern"), resultSet.getString("adPatterns")};
-        else
-            throw new IllegalStateException("There were no config for that site");
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement selectConfigStatement = connection.prepareStatement(
+                        "SELECT * FROM configs WHERE linkHash = SHA1(?)"
+                )
+        ) {
+            selectConfigStatement.setString(1, siteLink);
+            try (ResultSet resultSet = selectConfigStatement.executeQuery()) {
+                if (resultSet.next())
+                    return new Object[]{resultSet.getInt("id"), resultSet.getString("bodyPattern"), resultSet.getString("adPatterns")};
+                else
+                    throw new IllegalStateException("There were no config for that site");
+            }
+        }
     }
 
 
     public void insertConfig(String siteLink, String bodyPattern, String adPatterns) throws SQLException {
-        insertConfigStatement.setString(1, siteLink);
-        insertConfigStatement.setString(2, bodyPattern);
-        insertConfigStatement.setString(3, adPatterns);
-        insertConfigStatement.setString(4, siteLink);
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement insertConfigStatement = connection.prepareStatement(
+                        "INSERT INTO configs(link, bodyPattern, adPatterns, linkHash) VALUES (?,?,?,SHA1(?))"
+                )
+        ) {
+            insertConfigStatement.setString(1, siteLink);
+            insertConfigStatement.setString(2, bodyPattern);
+            insertConfigStatement.setString(3, adPatterns);
+            insertConfigStatement.setString(4, siteLink);
 
-        insertConfigStatement.executeUpdate();
+            insertConfigStatement.executeUpdate();
+        }
     }
 
     public void updateConfig(int id, String bodyPattern, String adPatterns) throws SQLException {
-        updateConfigStatement.setString(1, bodyPattern);
-        updateConfigStatement.setString(2, adPatterns);
-        updateConfigStatement.setInt(3, id);
-        updateConfigStatement.executeUpdate();
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement updateConfigStatement = connection.prepareStatement(
+                        "UPDATE configs SET bodyPattern = ?,adPatterns = ? WHERE id = ?"
+                )
+        ) {
+            updateConfigStatement.setString(1, bodyPattern);
+            updateConfigStatement.setString(2, adPatterns);
+            updateConfigStatement.setInt(3, id);
+            updateConfigStatement.executeUpdate();
+        }
     }
 
 
     // Query Methods
     public Item[] getLastNewsOfChannel(int numOfRows, int channelId) throws SQLException {
-        selectLastNewsStatement.setInt(1, channelId);
-        selectLastNewsStatement.setInt(2, numOfRows);
-        ResultSet resultSet = selectLastNewsStatement.executeQuery();
-        ArrayList<Item> items = new ArrayList<>();
-        while (resultSet.next()) {
-            try {
-                Item item = new Item(
-                        resultSet.getString("title"),
-                        new URL(resultSet.getString("link")),
-                        null,
-                        resultSet.getDate("date"),
-                        channelId
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement selectLastNewsStatement = connection.prepareStatement(
+                        "SELECT items.id,title,`desc`,text,date,items.link FROM `items`" +
+                                " INNER JOIN channels ON items.channelId = channels.id" +
+                                " WHERE channelId = ? ORDER BY date DESC LIMIT ?"
+                )
+        ) {
+            selectLastNewsStatement.setInt(1, channelId);
+            selectLastNewsStatement.setInt(2, numOfRows);
+            try (ResultSet resultSet = selectLastNewsStatement.executeQuery()) {
+                ArrayList<Item> items = new ArrayList<>();
+                while (resultSet.next()) {
+                    try {
+                        Item item = new Item(
+                                resultSet.getString("title"),
+                                new URL(resultSet.getString("link")),
+                                null,
+                                resultSet.getDate("date"),
+                                channelId
 
-                );
-                items.add(item);
-            } catch (MalformedURLException e) {
-                logger.warn("item link is not valid", e);
+                        );
+                        items.add(item);
+                    } catch (MalformedURLException e) {
+                        logger.warn("item link is not valid", e);
+                    }
+                }
+                return items.toArray(new Item[0]);
             }
         }
-        return items.toArray(new Item[0]);
     }
 
     public int getNumOfItems(Date dayDate, int channelId) throws SQLException {
-        Date startOfDay = atStartOfDay(dayDate);
-        Date endOfDay = atEndOfDay(dayDate);
-        getItemCountForDayStatement.setInt(1, channelId);
-        getItemCountForDayStatement.setTimestamp(2, new Timestamp(startOfDay.getTime()));
-        getItemCountForDayStatement.setTimestamp(3, new Timestamp(endOfDay.getTime()));
-        ResultSet resultSet = getItemCountForDayStatement.executeQuery();
-        if (resultSet.next())
-            return resultSet.getInt("num");
-        else
-            return 0;
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement getItemCountForDayStatement = connection.prepareStatement(
+                        "SELECT COUNT(*) AS num FROM items WHERE channelId = ? AND date BETWEEN ? AND ?"
+                )
+        ) {
+            Date startOfDay = atStartOfDay(dayDate);
+            Date endOfDay = atEndOfDay(dayDate);
+            getItemCountForDayStatement.setInt(1, channelId);
+            getItemCountForDayStatement.setTimestamp(2, new Timestamp(startOfDay.getTime()));
+            getItemCountForDayStatement.setTimestamp(3, new Timestamp(endOfDay.getTime()));
+
+            try (ResultSet resultSet = getItemCountForDayStatement.executeQuery()) {
+                if (resultSet.next())
+                    return resultSet.getInt("num");
+                else
+                    return 0;
+            }
+        }
     }
 
     private Date atEndOfDay(Date date) {
@@ -275,30 +244,41 @@ public class DatabaseHandler {
         return calendar.getTime();
     }
 
-    public Channel[] getChannelsBeforeMinute(int minutes) throws SQLException, MalformedURLException {
-        getChannelsBeforeDate.setInt(1, minutes);
-        try (ResultSet resultSet = getChannelsBeforeDate.executeQuery()) {
-            ArrayList<Channel> channels = new ArrayList<>();
-            while (resultSet.next()) {
-                try {
-                    channels.add(
-                            new Channel(
-                                    resultSet.getString("name"),
-                                    null,
-                                    new URL(resultSet.getString("rssLink")),
-                                    resultSet.getDate("lastUpdate")
-                            )
-                    );
-                } catch (SQLException | MalformedURLException e) {
-                    logger.warn("error during getting channels", e);
+    public Channel[] getChannelsBeforeMinute(int minutes) throws SQLException {
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement getChannelsBeforeDate = connection.prepareStatement(
+                        "SELECT *FROM channels WHERE lastUpdate < DATE_SUB(NOW(),INTERVAL ? MINUTE) ORDER BY lastUpdate ASC"
+                )
+        ) {
+            getChannelsBeforeDate.setInt(1, minutes);
+            try (ResultSet resultSet = getChannelsBeforeDate.executeQuery()) {
+                ArrayList<Channel> channels = new ArrayList<>();
+                while (resultSet.next()) {
+                    try {
+                        channels.add(
+                                new Channel(
+                                        resultSet.getString("name"),
+                                        null,
+                                        new URL(resultSet.getString("rssLink")),
+                                        resultSet.getDate("lastUpdate")
+                                )
+                        );
+                    } catch (SQLException | MalformedURLException e) {
+                        logger.warn("error during getting channels", e);
+                    }
                 }
+                return channels.toArray(new Channel[0]);
             }
-            return channels.toArray(new Channel[0]);
         }
     }
 
     public List<Object[]> getAllChannels() throws SQLException {
-        try (ResultSet resultSet = selectAllChannelsSatement.executeQuery()) {
+        try (
+                Connection connection = ConnectionPool.getConnection();
+                PreparedStatement selectAllChannelsStatement = connection.prepareStatement("SELECT * FROM channels");
+                ResultSet resultSet = selectAllChannelsStatement.executeQuery()
+        ) {
             ArrayList<Object[]> channels = new ArrayList<>();
             while (resultSet.next()) {
                 try {
@@ -310,24 +290,6 @@ public class DatabaseHandler {
                 }
             }
             return channels;
-        }
-    }
-
-    public void close() {
-        try {
-            getItemCountForDayStatement.close();
-            selectLastNewsStatement.close();
-            insertItemStatement.close();
-            getItemIdStatement.close();
-            getChannelIdStatement.close();
-            insertChannelStatement.close();
-            insertConfigStatement.close();
-            selectConfigStatement.close();
-            updateConfigStatement.close();
-            getChannelsBeforeDate.close();
-            connection.close();
-        } catch (SQLException e) {
-            logger.warn("There was some error during closing DB", e);
         }
     }
 }
