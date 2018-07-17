@@ -83,11 +83,11 @@ public class DatabaseHandler {
         ) {
             insertItemStatement.setString(1, item.getTitle());
             insertItemStatement.setString(2, item.getLink().toExternalForm());
-            insertItemStatement.setString(3, item.getDescription());
-            insertItemStatement.setString(4, item.getFullText());
+            insertItemStatement.setString(3, item.getDesc());
+            insertItemStatement.setString(4, item.getText());
 
-            if (item.getPubDate() != null)
-                insertItemStatement.setTimestamp(5, new Timestamp(item.getPubDate().getTime()));
+            if (item.getDate() != null)
+                insertItemStatement.setTimestamp(5, new Timestamp(item.getDate().getTime()));
             else
                 insertItemStatement.setTimestamp(5, null);
 
@@ -184,7 +184,8 @@ public class DatabaseHandler {
                         Item item = new Item(
                                 resultSet.getString("title"),
                                 new URL(resultSet.getString("link")),
-                                null,
+                                resultSet.getString("link"),
+                                resultSet.getString("text"),
                                 resultSet.getDate("date"),
                                 channelId
 

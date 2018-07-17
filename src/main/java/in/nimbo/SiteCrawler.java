@@ -59,7 +59,7 @@ public class SiteCrawler implements Runnable {
 
                 try {
                     String newsText = extractTextByPattern(item.getLink(), siteConfig.getBodyPattern(), siteConfig.getAdPatterns());
-                    item.setFullText(newsText);
+                    item.setText(newsText);
                     db.insertItem(item);
                 } catch (IOException e) {
                     logger.warn(e.getMessage(), e);
