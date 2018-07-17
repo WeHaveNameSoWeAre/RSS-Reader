@@ -15,6 +15,13 @@ public class Config {
         this(null, link, bodyPattern, adPatterns);
     }
 
+    public Config(Integer id, String link, String bodyPattern, String adPatterns) {
+        this.id = id;
+        this.link = link;
+        this.bodyPattern = bodyPattern;
+        setAdPatterns(adPatterns);
+    }
+
     public Config(Integer id, String link, String bodyPattern, String[] adPatterns) {
         this.id = id;
         this.link = link;
@@ -54,11 +61,22 @@ public class Config {
 
     }
 
+    public String getAdPatternsString(){
+        return adPatterns;
+    }
+
     public void setAdPatterns(String[] adPatterns) {
         if (adPatterns == null || adPatterns.length == 0)
             this.adPatterns = null;
         else
             this.adPatterns = String.join(";", adPatterns);
+    }
+
+    public void setAdPatterns(String adPatterns) {
+        if (adPatterns == null || adPatterns.isEmpty())
+            this.adPatterns = null;
+        else
+            this.adPatterns = adPatterns;
     }
 
 
