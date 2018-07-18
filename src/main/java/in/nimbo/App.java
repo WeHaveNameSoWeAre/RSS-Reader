@@ -23,7 +23,7 @@ public class App {
                 MysqlConnectionPool.close();
             }));
 
-            SiteUpdater.getInstance();
+            SiteUpdater.getInstance().start();
             ShellFactory.createConsoleShell("RSS Reader", "Enter '?list' to list all commands",
                     new Console()).commandLoop();
 
