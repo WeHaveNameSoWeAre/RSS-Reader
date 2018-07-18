@@ -7,11 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,6 +67,24 @@ public class MysqlChannelDAOImpl implements ChannelDAO {
                 }
             }
         }
+    }
+
+    @Override
+    public void updateChannelLastDate(Channel channel) throws SQLException {
+        if (channel.getId() == null)
+            throw new IllegalArgumentException("id is null");
+
+        try (
+                Connection connection = getConnection();
+                PreparedStatement updateChannelDate = connection.prepareStatement(
+                        "UPDATE channels SET lastUpdate = ? WHERE id = ?"
+                )
+        ) {
+            updateChannelDate.setTimestamp(1, new Timestamp(channel.getLastUpdate().getTime()));
+            updateChannelDate.setInt(2, channel.getId());
+            updateChannelDate.executeUpdate();
+        }
+
     }
 
     @Override
