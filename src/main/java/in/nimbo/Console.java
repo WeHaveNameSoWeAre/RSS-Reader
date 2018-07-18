@@ -8,6 +8,7 @@ import in.nimbo.dao.ItemDAO;
 import in.nimbo.impl.mysql.MysqlChannelDAOImpl;
 import in.nimbo.impl.mysql.MysqlConfigDAOImpl;
 import in.nimbo.impl.mysql.MysqlItemDAOImpl;
+import in.nimbo.model.Channel;
 import in.nimbo.model.Config;
 import in.nimbo.model.Item;
 import org.slf4j.Logger;
@@ -84,7 +85,7 @@ public class Console {
             System.out.println("please enter a positive number!");
         else {
             try {
-                Item[] lastNewsOfChannel = DatabaseHandler.getInstance().getLastNewsOfChannel(numOfRows, rssId);
+                List<Item> lastNewsOfChannel = itemDAO.getLastNewsOfChannel(numOfRows, rssId);
                 for (Item item : lastNewsOfChannel) {
                     System.out.println(item);
                 }
@@ -98,10 +99,10 @@ public class Console {
     @Command(description = "Show all channels")
     public void showChannels() {
         try {
-            List<Object[]> channels = DatabaseHandler.getInstance().getAllChannels();
-            for (Object[] channel : channels) {
-                System.out.println("id =" + channel[0]);
-                System.out.println(channel[1]);
+            List<Channel> channels = channelDAO.getAllChannels();
+            for (Channel channel : channels) {
+                System.out.println("id =" + channel.getId());
+                System.out.println(channel.getName());
                 System.out.println();
             }
         } catch (Exception e) {
@@ -114,7 +115,7 @@ public class Console {
     public void getNumberOfNews(@Param(name = "rss id for site") int rssId) {
         try {
             Date date = new Date();
-            int items = DatabaseHandler.getInstance().getNumOfItems(date, rssId);
+            int items = itemDAO.getNumberOfItemsInChannelPerDay(date, rssId);
             System.out.println("This site has " + items + " item's in " + date);
         } catch (SQLException e) {
             logger.warn("sql exception happend", e);
@@ -135,7 +136,7 @@ public class Console {
                 Calendar calendar = Calendar.getInstance();
                 calendar.set(year, month - 1, day);
                 Date date = calendar.getTime();
-                int items = DatabaseHandler.getInstance().getNumOfItems(date, rssId);
+                int items = itemDAO.getNumberOfItemsInChannelPerDay(date, rssId);
                 System.out.println("This site has " + items + " item's in " + date);
             } catch (SQLException e) {
                 logger.warn("sql exception happend", e);
