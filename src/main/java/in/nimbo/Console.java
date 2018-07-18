@@ -2,6 +2,13 @@ package in.nimbo;
 
 import asg.cliche.Command;
 import asg.cliche.Param;
+import in.nimbo.dao.ChannelDAO;
+import in.nimbo.dao.ConfigDAO;
+import in.nimbo.dao.ItemDAO;
+import in.nimbo.impl.mysql.MysqlChannelDAOImpl;
+import in.nimbo.impl.mysql.MysqlConfigDAOImpl;
+import in.nimbo.impl.mysql.MysqlItemDAOImpl;
+import in.nimbo.model.Config;
 import in.nimbo.model.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +22,20 @@ import java.util.List;
 
 public class Console {
     private final static Logger logger = LoggerFactory.getLogger(Console.class);
+    private ChannelDAO channelDAO;
+    private ItemDAO itemDAO;
+    private ConfigDAO configDAO;
+
+
+    public Console() {
+        this(new MysqlChannelDAOImpl(), new MysqlItemDAOImpl(), new MysqlConfigDAOImpl());
+    }
+
+    public Console(ChannelDAO channelDAO, ItemDAO itemDAO, ConfigDAO configDAO) {
+        this.channelDAO = channelDAO;
+        this.itemDAO = itemDAO;
+        this.configDAO = configDAO;
+    }
 
     @Command
     public void crawl(@Param(name = "RSS Link", description = "rss link for site to crawl.") String rssLink) {
@@ -31,9 +52,9 @@ public class Console {
     @Command(description = "add or update site configs without ad patterns")
     public void addConfig(@Param(name = "site link") String siteLink,
                           @Param(name = "body pattern") String bodyPattern) {
-        SiteConfig siteConfig = new DatabaseSiteConfig(siteLink, bodyPattern, null);
+        Config siteConfig = new Config(siteLink, bodyPattern);
         try {
-            siteConfig.save();
+            configDAO.insertOrUpdateConfig(siteConfig);
             System.out.println("Adding config was successful");
         } catch (Exception e) {
             logger.warn("saving config was unsuccessful for site " + siteLink, e);
@@ -45,9 +66,9 @@ public class Console {
     public void addConfig(@Param(name = "site link") String siteLink,
                           @Param(name = "body pattern") String bodyPattern,
                           @Param(name = "ad patterns") String adPatterns) {
-        SiteConfig siteConfig = new DatabaseSiteConfig(siteLink, bodyPattern, adPatterns.split(";"));
+        Config siteConfig = new Config(siteLink, bodyPattern, adPatterns.split(";"));
         try {
-            siteConfig.save();
+            configDAO.insertOrUpdateConfig(siteConfig);
             System.out.println("Adding config was successful");
         } catch (Exception e) {
             logger.warn("saving config was unsuccessful for site " + siteLink, e);

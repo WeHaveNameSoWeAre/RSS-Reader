@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Objects;
 
 public class MysqlConfigDAOImpl implements ConfigDAO {
     private final static Logger logger = LoggerFactory.getLogger(MysqlConfigDAOImpl.class);
@@ -77,6 +78,26 @@ public class MysqlConfigDAOImpl implements ConfigDAO {
             }
         }
 
+    }
+
+    @Override
+    public void insertOrUpdateConfig(Config config) throws SQLException {
+        Objects.requireNonNull(config);
+        Objects.requireNonNull(config.getLink());
+        Integer id;
+        try {
+            Config siteConfig = getConfig(config.getLink());
+            id = siteConfig.getId();
+        } catch (IllegalStateException e) {
+            id = null;
+        }
+
+        if (id != null){
+            config.setId(id);
+            updateConfig(config);
+        }else{
+            insertConfig(config);
+        }
     }
 
     protected Connection getConnection() throws SQLException {

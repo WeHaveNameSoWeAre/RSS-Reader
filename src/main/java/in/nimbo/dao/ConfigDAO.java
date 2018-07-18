@@ -10,4 +10,6 @@ public interface ConfigDAO {
     void insertConfig(Config config) throws SQLException;
 
     void updateConfig(Config config) throws SQLException;
+
+    void insertOrUpdateConfig(Config config) throws SQLException;
 }
