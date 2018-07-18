@@ -125,6 +125,78 @@ public class MysqlItemDAOImpl implements ItemDAO {
         }
     }
 
+    public List<Item> searchByText(String search) throws SQLException {
+        try (
+                Connection connection = getConnection();
+                PreparedStatement getItemIdStatement =
+                        connection.prepareStatement(
+                                "SELECT * FROM items WHERE text LIKE ?"
+                        )
+        ) {
+
+            getItemIdStatement.setString(1, "%" + search + "%");
+
+            try (ResultSet resultSet = getItemIdStatement.executeQuery()) {
+                ArrayList<Item> items = new ArrayList<>();
+                while (resultSet.next()) {
+                    try {
+                        Item item = new Item(
+                                resultSet.getInt("id"),
+                                resultSet.getString("title"),
+                                new URL(resultSet.getString("link")),
+                                resultSet.getString("link"),
+                                resultSet.getString("text"),
+                                resultSet.getDate("date"),
+                                resultSet.getInt("channelId")
+
+                        );
+                        items.add(item);
+                    } catch (MalformedURLException e) {
+                        logger.warn("item link is not valid", e);
+                    }
+                }
+                return items;
+            }
+
+        }
+    }
+
+    public List<Item> searchByTitle(String search) throws SQLException {
+        try (
+                Connection connection = getConnection();
+                PreparedStatement getItemIdStatement =
+                        connection.prepareStatement(
+                                "SELECT * FROM items WHERE title LIKE ?"
+                        )
+        ) {
+
+            getItemIdStatement.setString(1, "%" + search + "%");
+
+            try (ResultSet resultSet = getItemIdStatement.executeQuery()) {
+                ArrayList<Item> items = new ArrayList<>();
+                while (resultSet.next()) {
+                    try {
+                        Item item = new Item(
+                                resultSet.getInt("id"),
+                                resultSet.getString("title"),
+                                new URL(resultSet.getString("link")),
+                                resultSet.getString("link"),
+                                resultSet.getString("text"),
+                                resultSet.getDate("date"),
+                                resultSet.getInt("channelId")
+
+                        );
+                        items.add(item);
+                    } catch (MalformedURLException e) {
+                        logger.warn("item link is not valid", e);
+                    }
+                }
+                return items;
+            }
+
+        }
+    }
+
     protected Connection getConnection() throws SQLException {
         return MysqlConnectionPool.getConnection();
     }

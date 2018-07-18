@@ -123,6 +123,35 @@ public class Console {
         }
     }
 
+    @Command(description = "search in item texts")
+    public void searchInText(@Param(name = "search text") String text) {
+        try {
+            List<Item> items = itemDAO.searchByText(text);
+            for (Item item : items) {
+                System.out.println(item);
+            }
+
+        } catch (SQLException e) {
+            logger.warn("sql exception happend", e);
+            System.out.println("search failed. for more information see the logs!");
+        }
+    }
+
+
+    @Command(description = "search in item titles")
+    public void searchInTitle(@Param(name = "search text") String text) {
+        try {
+            List<Item> items = itemDAO.searchByTitle(text);
+            for (Item item : items) {
+                System.out.println(item);
+            }
+
+        } catch (SQLException e) {
+            logger.warn("sql exception happend", e);
+            System.out.println("search failed. for more information see the logs!");
+        }
+    }
+
     @Command(abbrev = "gnn", description = "get items of a day for a site")
     public void getNumberOfNews(@Param(name = "rss id for site") int rssId,
                                 @Param(name = "year") int year,

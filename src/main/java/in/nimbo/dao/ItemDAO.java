@@ -14,4 +14,8 @@ public interface ItemDAO {
     List<Item> getLastNewsOfChannel(int numOfRows, int channelId) throws SQLException;
 
     int getNumberOfItemsInChannelPerDay(Date dayDate, int channelId) throws SQLException;
+
+    List<Item> searchByText(String search) throws SQLException;
+
+    List<Item> searchByTitle(String search) throws SQLException;
 }
