@@ -11,6 +11,8 @@ public interface ChannelDAO {
 
     int getChannelId(URL rssLink) throws SQLException;
 
+    void updateChannelLastDate(Channel channel) throws SQLException;
+
     List<Channel> getAllChannels() throws SQLException;
 
     List<Channel> getChannelsUpdatedBefore(int minutes) throws SQLException;

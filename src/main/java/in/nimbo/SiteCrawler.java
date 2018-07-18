@@ -63,6 +63,8 @@ public class SiteCrawler implements Runnable {
 
             try {
                 channelId = channelDAO.getChannelId(channel.getRssLink());
+                channel.setId(channelId);
+                channelDAO.updateChannelLastDate(channel);
             } catch (SQLException e) {
                 channelDAO.insertChannel(channel);
                 channelId = channelDAO.getChannelId(channel.getRssLink());

@@ -74,6 +74,24 @@ public class MysqlChannelDAOImpl implements ChannelDAO {
     }
 
     @Override
+    public void updateChannelLastDate(Channel channel) throws SQLException {
+        if (channel.getId() == null)
+            throw new IllegalArgumentException("id is null");
+
+        try (
+                Connection connection = getConnection();
+                PreparedStatement updateChannelDate = connection.prepareStatement(
+                        "UPDATE channels SET lastUpdate = ? WHERE id = ?"
+                )
+        ) {
+            updateChannelDate.setTimestamp(1, new Timestamp(channel.getLastUpdate().getTime()));
+            updateChannelDate.setInt(2, channel.getId());
+            updateChannelDate.executeUpdate();
+        }
+
+    }
+
+    @Override
     public List<Channel> getAllChannels() throws SQLException {
         {
             try (
