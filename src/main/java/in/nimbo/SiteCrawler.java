@@ -4,7 +4,14 @@ import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
+import in.nimbo.dao.ChannelDAO;
+import in.nimbo.dao.ConfigDAO;
+import in.nimbo.dao.ItemDAO;
+import in.nimbo.impl.mysql.MysqlChannelDAOImpl;
+import in.nimbo.impl.mysql.MysqlConfigDAOImpl;
+import in.nimbo.impl.mysql.MysqlItemDAOImpl;
 import in.nimbo.model.Channel;
+import in.nimbo.model.Config;
 import in.nimbo.model.Item;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -15,21 +22,32 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.SQLException;
+import java.util.Date;
 
 public class SiteCrawler implements Runnable {
-    final Logger logger = LoggerFactory.getLogger(SiteCrawler.class);
-    final DatabaseHandler db = DatabaseHandler.getInstance();
+    private final Logger logger = LoggerFactory.getLogger(SiteCrawler.class);
+    private ChannelDAO channelDAO;
+    private ItemDAO itemDAO;
+    private ConfigDAO configDAO;
     private URL urlAddress;
 
     public SiteCrawler(URL urlAddress) {
+        this(urlAddress, new MysqlChannelDAOImpl(), new MysqlItemDAOImpl(), new MysqlConfigDAOImpl());
+    }
+
+
+    public SiteCrawler(URL urlAddress, ChannelDAO channelDAO, ItemDAO itemDAO, ConfigDAO configDAO) {
         this.urlAddress = urlAddress;
+        this.channelDAO = channelDAO;
+        this.itemDAO = itemDAO;
+        this.configDAO = configDAO;
     }
 
     public void update() {
         logger.info("Start Updating: {}", urlAddress);
         try {
 
-            SiteConfig siteConfig = new DatabaseSiteConfig(urlAddress.getHost());
+            Config siteConfig = configDAO.getConfig(urlAddress.getHost());
 
             SyndFeedInput input = new SyndFeedInput();
             SyndFeed feed = input.build(new XmlReader(urlAddress));
@@ -39,15 +57,15 @@ public class SiteCrawler implements Runnable {
 
             logger.trace(feed.toString());
 
-            Channel channel = new Channel(feed.getTitle(), urlAddress, feed.getPublishedDate());
+            Channel channel = new Channel(feed.getTitle(), urlAddress, new Date(), urlAddress.getHost());
 
             int channelId;
 
             try {
-                channelId = db.getChannelId(channel);
+                channelId = channelDAO.getChannelId(channel.getRssLink());
             } catch (SQLException e) {
-                db.insertChannel(channel);
-                channelId = db.getChannelId(channel);
+                channelDAO.insertChannel(channel);
+                channelId = channelDAO.getChannelId(channel.getRssLink());
             }
 
             for (SyndEntry entry : feed.getEntries()) {
@@ -55,12 +73,12 @@ public class SiteCrawler implements Runnable {
                 Item item = new Item(entry.getTitle(), new URL(entry.getLink()), description, entry.getPublishedDate(), channelId);
 
                 logger.debug("Checking item {}", item.getTitle());
-                if (db.checkItemExists(item)) continue;
+                if (itemDAO.checkItemExists(item)) continue;
 
                 try {
                     String newsText = extractTextByPattern(item.getLink(), siteConfig.getBodyPattern(), siteConfig.getAdPatterns());
                     item.setText(newsText);
-                    db.insertItem(item);
+                    itemDAO.insertItem(item);
                 } catch (IOException e) {
                     logger.warn(e.getMessage(), e);
                 } catch (Exception e) {
@@ -77,7 +95,7 @@ public class SiteCrawler implements Runnable {
     }
 
     /**
-     * this method extract article text by using given patterns.
+     * this method extract article text using given patterns.
      * Notice: If there is no pattern or config for this link available, this method is useless.
      * instead look at see also part.
      *
