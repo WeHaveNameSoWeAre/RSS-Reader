@@ -131,9 +131,11 @@ public class MysqlChannelDAOImpl implements ChannelDAO {
                     try {
                         channels.add(
                                 new Channel(
+                                        resultSet.getInt("id"),
                                         resultSet.getString("name"),
                                         new URL(resultSet.getString("rssLink")),
-                                        resultSet.getDate("lastUpdate")
+                                        resultSet.getDate("lastUpdate"),
+                                        resultSet.getString("link")
                                 )
                         );
                     } catch (SQLException | MalformedURLException e) {

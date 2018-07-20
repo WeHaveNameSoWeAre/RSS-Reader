@@ -4,6 +4,8 @@ import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
+import de.l3s.boilerpipe.BoilerpipeProcessingException;
+import de.l3s.boilerpipe.extractors.ArticleExtractor;
 import in.nimbo.dao.ChannelDAO;
 import in.nimbo.dao.ConfigDAO;
 import in.nimbo.dao.ItemDAO;
@@ -13,6 +15,7 @@ import in.nimbo.impl.mysql.MysqlItemDAOImpl;
 import in.nimbo.model.Channel;
 import in.nimbo.model.Config;
 import in.nimbo.model.Item;
+import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -47,7 +50,13 @@ public class SiteCrawler implements Runnable {
         logger.info("Start Updating: {}", urlAddress);
         try {
 
-            Config siteConfig = configDAO.getConfig(urlAddress.getHost());
+            Config siteConfig = null;
+
+            try {
+                siteConfig = configDAO.getConfig(urlAddress.getHost());
+            } catch (IllegalStateException e) {
+                logger.info("Config for {} not found. Default Algorithm Will Be Used", urlAddress.getHost());
+            }
 
             SyndFeedInput input = new SyndFeedInput();
             SyndFeed feed = input.build(new XmlReader(urlAddress));
@@ -56,7 +65,6 @@ public class SiteCrawler implements Runnable {
                     "  {} items found!", feed.getTitle(), feed.getEntries().size());
 
             logger.trace(feed.toString());
-
             Channel channel = new Channel(feed.getTitle(), urlAddress, new Date(), urlAddress.getHost());
 
             int channelId;
@@ -72,19 +80,28 @@ public class SiteCrawler implements Runnable {
 
             for (SyndEntry entry : feed.getEntries()) {
                 String description = entry.getDescription() != null ? entry.getDescription().getValue() : "";
+
                 Item item = new Item(entry.getTitle(), new URL(entry.getLink()), description, entry.getPublishedDate(), channelId);
 
                 logger.debug("Checking item {}", item.getTitle());
                 if (itemDAO.checkItemExists(item)) continue;
 
                 try {
-                    String newsText = extractTextByPattern(item.getLink(), siteConfig.getBodyPattern(), siteConfig.getAdPatterns());
+
+                    String newsText;
+                    if (siteConfig != null) {
+                        newsText = extractTextByPattern(item.getLink(), siteConfig.getBodyPattern(), siteConfig.getAdPatterns());
+                    } else {
+                        newsText = extractTextAutomatically(item.getLink());
+                    }
+
                     item.setText(newsText);
                     itemDAO.insertItem(item);
                 } catch (IOException e) {
                     logger.warn(e.getMessage(), e);
                 } catch (Exception e) {
                     logger.debug("failed to load fullText for item   {}, for more information enable debug level", item.getTitle());
+                    logger.debug("error", e);
                     logger.trace("Printing Item : {}", item);
                 }
 
@@ -110,7 +127,7 @@ public class SiteCrawler implements Runnable {
      * @throws IllegalStateException                            if element not found or text is null
      */
     String extractTextByPattern(URL link, String bodyPattern, String[] adPatterns) throws IOException {
-        Document doc = Jsoup.connect(link.toExternalForm()).get();
+        Document doc = Jsoup.connect(link.toExternalForm()).timeout(3000).get();
 
         for (String adPattern : adPatterns)
             doc.select(adPattern).remove();
@@ -125,6 +142,11 @@ public class SiteCrawler implements Runnable {
             throw new IllegalStateException("text is null");
 
         return text;
+    }
+
+    String extractTextAutomatically(URL link) throws BoilerpipeProcessingException, IOException {
+        Connection.Response response = Jsoup.connect(link.toExternalForm()).method(Connection.Method.GET).timeout(3000).execute();
+        return ArticleExtractor.INSTANCE.getText(response.body());
     }
 
     @Override

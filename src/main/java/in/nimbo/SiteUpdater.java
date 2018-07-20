@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
-import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -41,9 +41,10 @@ public class SiteUpdater {
     public void crawl(URL rssLink) {
         SiteCrawler siteCrawler = new SiteCrawler(rssLink);
         executorService.schedule(siteCrawler, 0, TimeUnit.NANOSECONDS);
+        logger.debug("{} scheduled in executor service!",rssLink);
     }
 
-    public void start() {
+    public synchronized void start() {
         if (started)
             throw new IllegalStateException("Already Started");
 
@@ -65,13 +66,15 @@ public class SiteUpdater {
         @Override
         public void run() {
             try {
-                List<Channel> channels = channelDAO.getChannelsUpdatedBefore(10);
+                List<Channel> channels = channelDAO.getChannelsUpdatedBefore(1);
                 for (Channel channel : channels) {
                     logger.info("Scheduled Channel Crawling Started for {}", channel.getName());
+                    channel.setLastUpdate(new Date());
+                    channelDAO.updateChannelLastDate(channel);
                     crawl(channel.getRssLink());
                 }
 
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 logger.error("error in Channels Crawler Starter Thread", e);
             }
         }
