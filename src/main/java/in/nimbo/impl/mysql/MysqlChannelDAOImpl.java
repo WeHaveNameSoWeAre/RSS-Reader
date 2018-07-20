@@ -23,14 +23,18 @@ public class MysqlChannelDAOImpl implements ChannelDAO {
             try (
                     Connection connection = getConnection();
                     PreparedStatement insertChannelStatement = connection.prepareStatement(
-                            "INSERT INTO `channels` (name, rssLink, rssLinkHash, link) VALUES (?,?,SHA1(?),?)")
+                            "INSERT INTO `channels` (id,name, rssLink, rssLinkHash, link,lastUpdate) VALUES (?,?,?,SHA1(?),?,?)")
             ) {
 
-                insertChannelStatement.setString(1, channel.getName());
-                insertChannelStatement.setString(2, channel.getRssLink().toExternalForm());
+                insertChannelStatement.setObject(1, channel.getId());
+                insertChannelStatement.setString(2, channel.getName());
                 insertChannelStatement.setString(3, channel.getRssLink().toExternalForm());
-                insertChannelStatement.setString(4,
+                insertChannelStatement.setString(4, channel.getRssLink().toExternalForm());
+                insertChannelStatement.setString(5,
                         channel.getLink() != null ? channel.getLink() : channel.getRssLink().getHost()
+                );
+                insertChannelStatement.setTimestamp(6,
+                        channel.getLastUpdate() != null ? new Timestamp(channel.getLastUpdate().getTime()) : null
                 );
                 insertChannelStatement.executeUpdate();
 
