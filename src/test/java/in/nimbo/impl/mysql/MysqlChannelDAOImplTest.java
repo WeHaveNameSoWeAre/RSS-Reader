@@ -3,6 +3,7 @@ package in.nimbo.impl.mysql;
 import in.nimbo.dao.ChannelDAO;
 import in.nimbo.model.Channel;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,10 +18,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class MysqlChannelDAOImplTest {
-    PreparedStatement preparedStatement;
-    ResultSet resultSet;
-    Connection connection;
-    ChannelDAO channelDAO = new MysqlChannelDAOImpl();
+    private PreparedStatement preparedStatement;
+    private ResultSet resultSet;
+    private Connection connection;
+    private ChannelDAO channelDAO = new MysqlChannelDAOImpl();
 
     @Before
     public void setUp() throws Exception {
@@ -144,5 +145,10 @@ public class MysqlChannelDAOImplTest {
             assertEquals(channel1.getName(), channelsUpdatedBefore.get(0).getName());
         } else
             fail();
+    }
+
+    @AfterClass
+    public static void afterClass(){
+        MysqlConnectionPool.close();
     }
 }

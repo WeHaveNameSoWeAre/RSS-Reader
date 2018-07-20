@@ -42,22 +42,23 @@ public class MysqlItemDAOImpl implements ItemDAO {
         try (
                 Connection connection = getConnection();
                 PreparedStatement insertItemStatement = connection.prepareStatement(
-                        "INSERT INTO items(title, link, `desc`, text, date, channelId, linkHash)" +
-                                " VALUES (?,?,?,?,?,?,SHA1(?))"
+                        "INSERT INTO items(id,title, link, `desc`, text, date, channelId, linkHash)" +
+                                " VALUES (?,?,?,?,?,?,?,SHA1(?))"
                 )
         ) {
-            insertItemStatement.setString(1, item.getTitle());
-            insertItemStatement.setString(2, item.getLink().toExternalForm());
-            insertItemStatement.setString(3, item.getDesc());
-            insertItemStatement.setString(4, item.getText());
+            insertItemStatement.setObject(1, item.getId());
+            insertItemStatement.setString(2, item.getTitle());
+            insertItemStatement.setString(3, item.getLink().toExternalForm());
+            insertItemStatement.setString(4, item.getDesc());
+            insertItemStatement.setString(5, item.getText());
 
             if (item.getDate() != null)
-                insertItemStatement.setTimestamp(5, new Timestamp(item.getDate().getTime()));
+                insertItemStatement.setTimestamp(6, new Timestamp(item.getDate().getTime()));
             else
-                insertItemStatement.setTimestamp(5, null);
+                insertItemStatement.setTimestamp(6, null);
 
-            insertItemStatement.setInt(6, item.getChannelId());
-            insertItemStatement.setString(7, item.getLink().toExternalForm());
+            insertItemStatement.setInt(7, item.getChannelId());
+            insertItemStatement.setString(8, item.getLink().toExternalForm());
 
             insertItemStatement.executeUpdate();
         }
@@ -136,28 +137,32 @@ public class MysqlItemDAOImpl implements ItemDAO {
 
             getItemIdStatement.setString(1, "%" + search + "%");
 
-            try (ResultSet resultSet = getItemIdStatement.executeQuery()) {
-                ArrayList<Item> items = new ArrayList<>();
-                while (resultSet.next()) {
-                    try {
-                        Item item = new Item(
-                                resultSet.getInt("id"),
-                                resultSet.getString("title"),
-                                new URL(resultSet.getString("link")),
-                                resultSet.getString("link"),
-                                resultSet.getString("text"),
-                                resultSet.getDate("date"),
-                                resultSet.getInt("channelId")
+            return getItems(getItemIdStatement);
 
-                        );
-                        items.add(item);
-                    } catch (MalformedURLException e) {
-                        logger.warn("item link is not valid", e);
-                    }
+        }
+    }
+
+    private List<Item> getItems(PreparedStatement getItemIdStatement) throws SQLException {
+        try (ResultSet resultSet = getItemIdStatement.executeQuery()) {
+            ArrayList<Item> items = new ArrayList<>();
+            while (resultSet.next()) {
+                try {
+                    Item item = new Item(
+                            resultSet.getInt("id"),
+                            resultSet.getString("title"),
+                            new URL(resultSet.getString("link")),
+                            resultSet.getString("link"),
+                            resultSet.getString("text"),
+                            resultSet.getDate("date"),
+                            resultSet.getInt("channelId")
+
+                    );
+                    items.add(item);
+                } catch (MalformedURLException e) {
+                    logger.warn("item link is not valid", e);
                 }
-                return items;
             }
-
+            return items;
         }
     }
 
@@ -172,27 +177,7 @@ public class MysqlItemDAOImpl implements ItemDAO {
 
             getItemIdStatement.setString(1, "%" + search + "%");
 
-            try (ResultSet resultSet = getItemIdStatement.executeQuery()) {
-                ArrayList<Item> items = new ArrayList<>();
-                while (resultSet.next()) {
-                    try {
-                        Item item = new Item(
-                                resultSet.getInt("id"),
-                                resultSet.getString("title"),
-                                new URL(resultSet.getString("link")),
-                                resultSet.getString("link"),
-                                resultSet.getString("text"),
-                                resultSet.getDate("date"),
-                                resultSet.getInt("channelId")
-
-                        );
-                        items.add(item);
-                    } catch (MalformedURLException e) {
-                        logger.warn("item link is not valid", e);
-                    }
-                }
-                return items;
-            }
+            return getItems(getItemIdStatement);
 
         }
     }
