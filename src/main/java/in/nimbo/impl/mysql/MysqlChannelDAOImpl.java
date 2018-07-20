@@ -17,9 +17,6 @@ public class MysqlChannelDAOImpl implements ChannelDAO {
     @Override
     public void insertChannel(Channel channel) throws SQLException {
         {
-            final int ERR_DUPLICATE = 1062;
-            final int ERR_DUPLICATE_WITH_KEY = 1586;
-
             try (
                     Connection connection = getConnection();
                     PreparedStatement insertChannelStatement = connection.prepareStatement(
@@ -38,16 +35,6 @@ public class MysqlChannelDAOImpl implements ChannelDAO {
                 );
                 insertChannelStatement.executeUpdate();
 
-            } catch (SQLIntegrityConstraintViolationException e) {
-                switch (e.getErrorCode()) {
-                    case ERR_DUPLICATE:
-                    case ERR_DUPLICATE_WITH_KEY:
-                        logger.debug("channel {} already exists in database!", channel.getRssLink());
-                        break;
-                    default:
-                        logger.warn("insertChannel sql statement not executed", e);
-                        throw new SQLException(e);
-                }
             }
         }
 
