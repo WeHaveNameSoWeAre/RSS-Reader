@@ -66,7 +66,7 @@ public class SiteUpdater {
         @Override
         public void run() {
             try {
-                List<Channel> channels = channelDAO.getChannelsUpdatedBefore(1);
+                List<Channel> channels = channelDAO.getChannelsUpdatedBefore(2);
                 for (Channel channel : channels) {
                     logger.info("Scheduled Channel Crawling Started for {}", channel.getName());
                     channel.setLastUpdate(new Date());

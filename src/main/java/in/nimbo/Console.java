@@ -41,12 +41,16 @@ public class Console {
     @Command
     public void crawl(@Param(name = "RSS Link", description = "rss link for site to crawl.") String rssLink) {
         try {
-            SiteUpdater.getInstance().crawl(new URL(rssLink));
+            URL link = new URL(rssLink);
+            SiteCrawler siteCrawler = new SiteCrawler(link);
+            if(siteCrawler.fetchSite(link).statusCode() != 200)
+                throw new RuntimeException("Document is Not Valid");
+            SiteUpdater.getInstance().crawl(link);
         } catch (MalformedURLException e) {
             System.out.println("Please Enter a valid RSS URL");
         } catch (Exception e) {
             logger.warn("Crawling was unsuccessful for site " + rssLink, e);
-            System.out.println("Crawling failed. for more information see the logs!");
+            System.out.println("Crawling failed.\n Myabe Network is not Connected Or document is not Reachable.\n for more information see the logs!");
         }
     }
 
