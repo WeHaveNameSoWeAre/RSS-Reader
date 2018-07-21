@@ -1,5 +1,8 @@
 package in.nimbo;
 
+import com.rometools.rome.feed.synd.SyndFeed;
+import com.rometools.rome.io.FeedException;
+import com.rometools.rome.io.SyndFeedInput;
 import in.nimbo.dao.ChannelDAO;
 import in.nimbo.dao.ConfigDAO;
 import in.nimbo.dao.ItemDAO;
@@ -9,6 +12,7 @@ import org.jsoup.nodes.Document;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -31,6 +35,16 @@ public class FakeSiteCrawler extends SiteCrawler {
     @Override
     Connection.Response fetchSite(URL link) throws IOException {
         return new FakeResponse(this.urlAddress);
+    }
+
+    @Override
+    SyndFeed getSyndFeed() throws FeedException, IOException {
+        SyndFeedInput input = new SyndFeedInput();
+        try {
+            return input.build(Paths.get(urlAddress.toURI()).toFile());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 

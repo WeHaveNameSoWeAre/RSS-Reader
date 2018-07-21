@@ -8,13 +8,16 @@ import java.sql.SQLException;
 import java.util.List;
 
 public class ChannelsDAOFake implements ChannelDAO {
+    private static boolean insertChannelCalled = false;
+    private static boolean getChannelCalled = false;
     @Override
     public void insertChannel(Channel channel) throws SQLException {
-
+        insertChannelCalled = true;
     }
 
     @Override
     public int getChannelId(URL rssLink) throws SQLException {
+        getChannelCalled = true;
         return 0;
     }
 

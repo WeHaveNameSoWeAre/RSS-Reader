@@ -8,7 +8,7 @@ import java.sql.SQLException;
 public class ConfigDAOFake implements ConfigDAO {
     @Override
     public Config getConfig(String link) throws SQLException {
-        return null;
+        throw new IllegalStateException();
     }
 
     @Override
