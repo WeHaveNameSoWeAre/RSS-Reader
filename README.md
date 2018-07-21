@@ -12,3 +12,7 @@ Notice: You Should Run `rss-reader.sql` in your database before run in resources
 
 #Settings
 place `databaseConfig.properties` next to jar file to customize database Connection.
+
+#Dependencies
+You need Maven to build Project. maven dependencies are on pom.xml
+Default Driver installed is Mysql but you can implement DAO interfaces and make your own driver.
