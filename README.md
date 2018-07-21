@@ -8,6 +8,7 @@ use `mvn install` Command to build the jar file
 
 #How to Run
 use `java -jar news-reader-1.0-SNAPSHOT.jar` to run program
+Notice: You Should Run `rss-reader.sql` in your database before run in resources folder.
 
 #Settings
 place `databaseConfig.properties` next to jar file to customize database Connection.
