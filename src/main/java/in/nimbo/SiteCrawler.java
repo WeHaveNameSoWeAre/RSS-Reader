@@ -34,6 +34,7 @@ public class SiteCrawler implements Runnable {
     private ItemDAO itemDAO;
     private ConfigDAO configDAO;
     private URL urlAddress;
+    private final int TIMEOUT = 3000;
 
     public SiteCrawler(URL urlAddress) {
         this(urlAddress, new MysqlChannelDAOImpl(), new MysqlItemDAOImpl(), new MysqlConfigDAOImpl());
@@ -155,7 +156,7 @@ public class SiteCrawler implements Runnable {
     }
 
     Connection.Response fetchSite(URL link) throws IOException {
-        Connection.Response response = Jsoup.connect(link.toExternalForm()).method(Connection.Method.GET).timeout(3000).execute();
+        Connection.Response response = Jsoup.connect(link.toExternalForm()).method(Connection.Method.GET).timeout(TIMEOUT).execute();
         return response;
     }
 
