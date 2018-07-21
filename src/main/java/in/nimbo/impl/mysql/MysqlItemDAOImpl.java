@@ -126,6 +126,7 @@ public class MysqlItemDAOImpl implements ItemDAO {
         }
     }
 
+    @Override
     public List<Item> searchByText(String search) throws SQLException {
         try (
                 Connection connection = getConnection();
@@ -166,6 +167,7 @@ public class MysqlItemDAOImpl implements ItemDAO {
         }
     }
 
+    @Override
     public List<Item> searchByTitle(String search) throws SQLException {
         try (
                 Connection connection = getConnection();

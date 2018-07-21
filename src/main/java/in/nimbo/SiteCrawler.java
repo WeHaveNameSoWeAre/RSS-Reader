@@ -2,6 +2,7 @@ package in.nimbo;
 
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
+import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import de.l3s.boilerpipe.BoilerpipeProcessingException;
@@ -58,8 +59,7 @@ public class SiteCrawler implements Runnable {
                 logger.info("Config for {} not found. Default Algorithm Will Be Used", urlAddress.getHost());
             }
 
-            SyndFeedInput input = new SyndFeedInput();
-            SyndFeed feed = input.build(new XmlReader(urlAddress));
+            SyndFeed feed = getSyndFeed();
 
             logger.info("feed reading was successful for site : {}," +
                     "  {} items found!", feed.getTitle(), feed.getEntries().size());
@@ -113,6 +113,11 @@ public class SiteCrawler implements Runnable {
 
     }
 
+    SyndFeed getSyndFeed() throws FeedException, IOException {
+        SyndFeedInput input = new SyndFeedInput();
+        return input.build(new XmlReader(urlAddress));
+    }
+
     /**
      * this method extract article text using given patterns.
      * Notice: If there is no pattern or config for this link available, this method is useless.
@@ -127,7 +132,7 @@ public class SiteCrawler implements Runnable {
      * @throws IllegalStateException                            if element not found or text is null
      */
     String extractTextByPattern(URL link, String bodyPattern, String[] adPatterns) throws IOException {
-        Document doc = Jsoup.connect(link.toExternalForm()).timeout(3000).get();
+        Document doc = fetchSite(link).parse();
 
         for (String adPattern : adPatterns)
             doc.select(adPattern).remove();
@@ -145,8 +150,13 @@ public class SiteCrawler implements Runnable {
     }
 
     String extractTextAutomatically(URL link) throws BoilerpipeProcessingException, IOException {
-        Connection.Response response = Jsoup.connect(link.toExternalForm()).method(Connection.Method.GET).timeout(3000).execute();
+        Connection.Response response = fetchSite(link);
         return ArticleExtractor.INSTANCE.getText(response.body());
+    }
+
+    Connection.Response fetchSite(URL link) throws IOException {
+        Connection.Response response = Jsoup.connect(link.toExternalForm()).method(Connection.Method.GET).timeout(3000).execute();
+        return response;
     }
 
     @Override

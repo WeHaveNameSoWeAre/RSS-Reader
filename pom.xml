@@ -20,6 +20,7 @@
         <hikari.version>3.1.0</hikari.version>
         <cliche.version>110413</cliche.version>
         <boilerpipe.version>1.2.3</boilerpipe.version>
+        <mockito.version>2.19.1</mockito.version>
     </properties>
 
     <dependencies>
@@ -28,6 +29,12 @@
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>${mockito.version}</version>
         </dependency>
 
         <dependency>
@@ -69,7 +76,7 @@
         <dependency>
             <groupId>com.robbypond</groupId>
             <artifactId>boilerpipe</artifactId>
-            <version>1.2.3</version>
+            <version>${boilerpipe.version}</version>
         </dependency>
 
 
